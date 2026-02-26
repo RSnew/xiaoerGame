@@ -26,8 +26,15 @@ export function isConfigured() {
 /** Initialise the Supabase client. Call once on page load. */
 export async function init() {
     if (!isConfigured()) return;
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { createClient } = window.supabase;
+    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            storageKey: 'xiaoer-auth',
+            storage: window.localStorage,
+        },
+    });
 }
 
 /** Register a new account. */
