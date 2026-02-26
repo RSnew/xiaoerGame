@@ -43,6 +43,11 @@ impl Combatant for Slime {
         self.shield -= absorbed;
         self.hp = (self.hp - (amount - absorbed)).max(0);
     }
+    fn heal(&mut self, amount: i32) -> i32 {
+        let before = self.hp;
+        self.hp = (self.hp + amount).min(self.max_hp);
+        self.hp - before
+    }
 }
 
 #[cfg(test)]

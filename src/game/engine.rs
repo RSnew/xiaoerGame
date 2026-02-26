@@ -7,6 +7,8 @@ use crate::character::Player;
 use crate::enemy::Slime;
 use crate::mechanics::combat::Combatant;
 use crate::mechanics::turn::TurnPhase;
+use crate::skill::emergency_heal::create_emergency_heal;
+use crate::skill::SkillEffect;
 
 /// Drives the main game loop: alternating player / enemy turns until one side falls.
 pub struct GameEngine {
@@ -21,6 +23,7 @@ impl GameEngine {
         let mut player = Player::new("勇者", 3);
         player.add_card(create_attack_card());
         player.add_card(create_defense_card());
+        player.equip_skill(create_emergency_heal());
 
         let enemy = Slime::new("史莱姆", 3);
 
@@ -51,6 +54,7 @@ impl GameEngine {
                 self.round += 1;
                 self.player.clear_shield();
                 self.enemy.clear_shield();
+                self.player.tick_skill_cooldowns();
             }
         }
 
@@ -79,19 +83,54 @@ impl GameEngine {
             println!("  [{}] {}", i + 1, card);
         }
 
-        let choice = self.read_choice(lines);
-        let card = self.player.hand[choice].clone();
+        let card_count = self.player.hand.len();
 
-        println!("\n▶ 你使用了「{}」！", card.name);
+        if !self.player.skills.is_empty() {
+            println!("\n你的技能：");
+            for (i, skill) in self.player.skills.iter().enumerate() {
+                println!("  [{}] {}", card_count + i + 1, skill);
+            }
+        }
 
-        match card.effect {
-            CardEffect::Damage(amount) => {
-                self.log_damage(&card, amount, "enemy");
+        let total = card_count + self.player.skills.len();
+        let choice = self.read_action(lines, total);
+
+        if choice < card_count {
+            let card = self.player.hand[choice].clone();
+            println!("\n▶ 你使用了「{}」！", card.name);
+            match card.effect {
+                CardEffect::Damage(amount) => {
+                    self.log_damage(&card, amount, "enemy");
+                }
+                CardEffect::Shield(amount) => {
+                    self.player.add_shield(amount);
+                    println!("  🛡️ 获得了 {} 点护盾！", amount);
+                }
             }
-            CardEffect::Shield(amount) => {
-                self.player.add_shield(amount);
-                println!("  🛡️ 获得了 {} 点护盾！", amount);
+        } else {
+            let skill_idx = choice - card_count;
+            if !self.player.skills[skill_idx].is_ready() {
+                println!(
+                    "\n⏳ 「{}」还在冷却中（剩余 {} 回合），请选择其他操作。",
+                    self.player.skills[skill_idx].name,
+                    self.player.skills[skill_idx].current_cooldown
+                );
+                self.player_turn(lines);
+                return;
             }
+            let skill = self.player.skills[skill_idx].clone();
+            println!("\n▶ 你使用了技能「{}」！", skill.name);
+            match skill.effect {
+                SkillEffect::Heal(amount) => {
+                    let healed = self.player.heal(amount);
+                    if healed > 0 {
+                        println!("  ❤️ 恢复了 {} 点生命值！", healed);
+                    } else {
+                        println!("  ❤️ 生命值已满，未恢复。");
+                    }
+                }
+            }
+            self.player.skills[skill_idx].trigger_cooldown();
         }
         println!();
     }
@@ -139,9 +178,13 @@ impl GameEngine {
         }
     }
 
-    fn read_choice(&self, lines: &mut impl Iterator<Item = io::Result<String>>) -> usize {
+    fn read_action(
+        &self,
+        lines: &mut impl Iterator<Item = io::Result<String>>,
+        max: usize,
+    ) -> usize {
         loop {
-            print!("选择要使用的卡牌 (输入编号): ");
+            print!("选择要执行的操作 (输入编号): ");
             io::stdout().flush().unwrap();
 
             let line = match lines.next() {
@@ -150,11 +193,8 @@ impl GameEngine {
             };
 
             match line.trim().parse::<usize>() {
-                Ok(n) if n >= 1 && n <= self.player.hand.len() => return n - 1,
-                _ => println!(
-                    "无效输入，请输入 1 到 {} 之间的数字。",
-                    self.player.hand.len()
-                ),
+                Ok(n) if n >= 1 && n <= max => return n - 1,
+                _ => println!("无效输入，请输入 1 到 {} 之间的数字。", max),
             }
         }
     }
