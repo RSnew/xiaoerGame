@@ -22,19 +22,20 @@ let engine = null;
 
 /* ========== Boot ========== */
 document.addEventListener('DOMContentLoaded', async () => {
-    await auth.init();
+    try { await auth.init(); } catch { /* CDN unavailable */ }
 
     engine = new GameEngine({
         onVictory: handleVictory,
     });
 
+    bindAuthUI();
+
     if (auth.isConfigured()) {
-        bindAuthUI();
         auth.onAuthStateChange(handleAuthChange);
         const session = await auth.getSession();
         if (session) await showLoggedIn();
     } else {
-        dom.guestBar.classList.add('hidden');
+        dom.userBar.classList.add('hidden');
     }
 });
 
@@ -97,6 +98,10 @@ function setSubmitLoading(form, loading) {
 /* ========== Auth Handlers ========== */
 async function handleLogin(e) {
     e.preventDefault();
+    if (!auth.isConfigured()) {
+        showError(dom.loginError, '请先配置 Supabase（见 js/auth/config.js）');
+        return;
+    }
     clearErrors();
     setSubmitLoading(dom.loginForm, true);
     try {
@@ -113,6 +118,10 @@ async function handleLogin(e) {
 
 async function handleRegister(e) {
     e.preventDefault();
+    if (!auth.isConfigured()) {
+        showError(dom.regError, '请先配置 Supabase（见 js/auth/config.js）');
+        return;
+    }
     clearErrors();
     setSubmitLoading(dom.registerForm, true);
     try {

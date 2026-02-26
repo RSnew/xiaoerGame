@@ -16,6 +16,8 @@
     --yellow:     #ffd040;
 }
 
+.hidden { display: none !important; }
+
 body {
     background: linear-gradient(160deg, #0a0a14 0%, #12122a 50%, #0e0e1a 100%);
     color: var(--text);
