@@ -14,9 +14,11 @@ export class GameEngine {
     /**
      * @param {Object} options
      * @param {function(): Promise<number|null>} [options.onVictory] - called on win, returns gold earned
+     * @param {import('../audio/music.js').MusicManager} [options.music] - procedural music manager
      */
     constructor(options = {}) {
         this.onVictory = options.onVictory || (() => Promise.resolve(null));
+        this.music = options.music || null;
         this.cacheDom();
         this.bindRestart();
         this.initState();
@@ -24,6 +26,7 @@ export class GameEngine {
         this.renderSkills();
         this.syncUI();
         this.log('⚔️ 战斗开始！勇者 vs 史莱姆', 'system');
+        if (this.music) this.music.playBattleBGM();
     }
 
     /* ========== Initialisation ========== */
@@ -359,6 +362,12 @@ export class GameEngine {
 
     async showResult(won) {
         this.gameOver = true;
+
+        if (this.music) {
+            if (won) this.music.playVictoryMusic();
+            else     this.music.playDefeatMusic();
+        }
+
         this.dom.resultIcon.textContent  = won ? '🎉' : '💀';
         this.dom.resultTitle.textContent = won ? '你胜利了！' : '你被击败了…';
         this.dom.resultDetail.textContent = won
@@ -389,6 +398,7 @@ export class GameEngine {
         this.syncUI();
         this.setCardsEnabled(true);
         this.log('⚔️ 新的战斗开始！', 'system');
+        if (this.music) this.music.playBattleBGM();
     }
 
     /* ========== Utility ========== */
