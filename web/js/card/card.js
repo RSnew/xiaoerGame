@@ -1,7 +1,8 @@
 /** Card effect types — extend this object when adding new effects. */
 export const CardEffect = Object.freeze({
     DAMAGE: 'damage',
-    // Future: HEAL, SHIELD, DRAW, …
+    SHIELD: 'shield',
+    // Future: HEAL, DRAW, …
 });
 
 /** A playable card. */

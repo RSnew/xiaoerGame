@@ -13,8 +13,6 @@ mod tests {
     fn attack_card_deals_one_damage() {
         let card = create_attack_card();
         assert_eq!(card.name, "攻击");
-        match card.effect {
-            CardEffect::Damage(d) => assert_eq!(d, 1),
-        }
+        assert!(matches!(card.effect, CardEffect::Damage(1)));
     }
 }

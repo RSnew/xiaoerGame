@@ -5,6 +5,7 @@ pub struct Slime {
     name: String,
     hp: i32,
     max_hp: i32,
+    shield: i32,
 }
 
 impl Slime {
@@ -13,6 +14,7 @@ impl Slime {
             name: name.to_string(),
             hp: max_hp,
             max_hp,
+            shield: 0,
         }
     }
 }
@@ -27,8 +29,19 @@ impl Combatant for Slime {
     fn max_hp(&self) -> i32 {
         self.max_hp
     }
+    fn shield(&self) -> i32 {
+        self.shield
+    }
+    fn add_shield(&mut self, amount: i32) {
+        self.shield += amount;
+    }
+    fn clear_shield(&mut self) {
+        self.shield = 0;
+    }
     fn take_damage(&mut self, amount: i32) {
-        self.hp = (self.hp - amount).max(0);
+        let absorbed = amount.min(self.shield);
+        self.shield -= absorbed;
+        self.hp = (self.hp - (amount - absorbed)).max(0);
     }
 }
 

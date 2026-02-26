@@ -1,10 +1,12 @@
 pub mod attack;
+pub mod defense;
 
 /// The effect a card produces when played.
 #[derive(Debug, Clone)]
 pub enum CardEffect {
     Damage(i32),
-    // Future: Heal(i32), Shield(i32), DrawCards(usize), …
+    Shield(i32),
+    // Future: Heal(i32), DrawCards(usize), …
 }
 
 /// A playable card in the game.

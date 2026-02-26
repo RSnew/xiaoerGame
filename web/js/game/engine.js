@@ -1,6 +1,7 @@
 import { Player } from '../character/player.js';
 import { Slime } from '../enemy/slime.js';
 import { createAttackCard } from '../card/attack.js';
+import { createDefenseCard } from '../card/defense.js';
 import { CardEffect } from '../card/card.js';
 import { TurnPhase, phaseLabel } from '../mechanics/turn.js';
 
@@ -9,20 +10,20 @@ import { TurnPhase, phaseLabel } from '../mechanics/turn.js';
  */
 export class GameEngine {
     constructor() {
-        this.initState();
         this.cacheDom();
         this.bindRestart();
+        this.initState();
         this.renderCards();
-        this.updateHpBars();
-        this.updateTurnBanner();
+        this.syncUI();
         this.log('⚔️ 战斗开始！勇者 vs 史莱姆', 'system');
     }
 
-    /* ---------- Initialisation ---------- */
+    /* ========== Initialisation ========== */
 
     initState() {
         this.player = new Player('勇者', 3);
         this.player.addCard(createAttackCard());
+        this.player.addCard(createDefenseCard());
         this.enemy = new Slime('史莱姆', 3);
         this.phase = TurnPhase.PLAYER;
         this.round = 1;
@@ -32,33 +33,35 @@ export class GameEngine {
 
     cacheDom() {
         this.dom = {
-            roundText:   document.getElementById('round-text'),
-            phaseText:   document.getElementById('phase-text'),
-            playerPanel: document.getElementById('player-panel'),
-            playerFrame: document.getElementById('player-frame'),
-            playerHpBar: document.getElementById('player-hp-bar'),
-            playerHpNum: document.getElementById('player-hp-num'),
-            enemyPanel:  document.getElementById('enemy-panel'),
-            enemyFrame:  document.getElementById('enemy-frame'),
-            enemyHpBar:  document.getElementById('enemy-hp-bar'),
-            enemyHpNum:  document.getElementById('enemy-hp-num'),
-            handCards:   document.getElementById('hand-cards'),
-            handHint:    document.getElementById('hand-hint'),
-            logBody:     document.getElementById('log-body'),
-            overlay:     document.getElementById('overlay'),
-            resultIcon:  document.getElementById('result-icon'),
-            resultTitle: document.getElementById('result-title'),
-            resultDetail:document.getElementById('result-detail'),
+            roundText:         document.getElementById('round-text'),
+            phaseText:         document.getElementById('phase-text'),
+            playerPanel:       document.getElementById('player-panel'),
+            playerFrame:       document.getElementById('player-frame'),
+            playerHpBar:       document.getElementById('player-hp-bar'),
+            playerHpNum:       document.getElementById('player-hp-num'),
+            playerShieldBadge: document.getElementById('player-shield-badge'),
+            playerShieldVal:   document.getElementById('player-shield-val'),
+            enemyPanel:        document.getElementById('enemy-panel'),
+            enemyFrame:        document.getElementById('enemy-frame'),
+            enemyHpBar:        document.getElementById('enemy-hp-bar'),
+            enemyHpNum:        document.getElementById('enemy-hp-num'),
+            enemyShieldBadge:  document.getElementById('enemy-shield-badge'),
+            enemyShieldVal:    document.getElementById('enemy-shield-val'),
+            handCards:         document.getElementById('hand-cards'),
+            handHint:          document.getElementById('hand-hint'),
+            logBody:           document.getElementById('log-body'),
+            overlay:           document.getElementById('overlay'),
+            resultIcon:        document.getElementById('result-icon'),
+            resultTitle:       document.getElementById('result-title'),
+            resultDetail:      document.getElementById('result-detail'),
         };
     }
 
     bindRestart() {
-        document.getElementById('btn-restart').addEventListener('click', () => {
-            this.restart();
-        });
+        document.getElementById('btn-restart').addEventListener('click', () => this.restart());
     }
 
-    /* ---------- Rendering ---------- */
+    /* ========== Rendering ========== */
 
     renderCards() {
         this.dom.handCards.innerHTML = '';
@@ -70,7 +73,7 @@ export class GameEngine {
                 <div class="card-icon">${card.icon}</div>
                 <div class="card-name">${card.name}</div>
                 <div class="card-desc">${card.description}</div>
-                <div class="card-value">伤害 ${card.effectValue}</div>
+                <div class="card-value">${card.effectType === CardEffect.DAMAGE ? '伤害' : '护盾'} ${card.effectValue}</div>
             `;
             el.addEventListener('click', () => this.onCardClick(i));
             this.dom.handCards.appendChild(el);
@@ -78,36 +81,52 @@ export class GameEngine {
     }
 
     setCardsEnabled(enabled) {
-        const cards = this.dom.handCards.querySelectorAll('.card');
-        cards.forEach(c => c.classList.toggle('card-disabled', !enabled));
+        this.dom.handCards.querySelectorAll('.card').forEach(c =>
+            c.classList.toggle('card-disabled', !enabled)
+        );
         this.dom.handHint.textContent = enabled ? '点击卡牌使用' : '等待中…';
+    }
+
+    syncUI() {
+        this.updateTurnBanner();
+        this.updateHpBars();
+        this.updateShields();
     }
 
     updateTurnBanner() {
         this.dom.roundText.textContent = `第 ${this.round} 回合`;
         this.dom.phaseText.textContent = phaseLabel(this.phase);
-        this.dom.phaseText.className = this.phase === TurnPhase.PLAYER
-            ? 'phase-player' : 'phase-enemy';
+        this.dom.phaseText.className = this.phase === TurnPhase.PLAYER ? 'phase-player' : 'phase-enemy';
     }
 
     updateHpBars() {
-        this.setHp('player', this.player);
-        this.setHp('enemy', this.enemy);
+        this.setHpBar('player', this.player);
+        this.setHpBar('enemy', this.enemy);
     }
 
-    setHp(side, combatant) {
+    setHpBar(side, combatant) {
         const pct = combatant.hpPercent();
         const bar = side === 'player' ? this.dom.playerHpBar : this.dom.enemyHpBar;
         const num = side === 'player' ? this.dom.playerHpNum : this.dom.enemyHpNum;
         bar.style.width = pct + '%';
-        bar.className = 'hp-fill ' + this.hpClass(pct);
+        bar.className = 'hp-fill ' + (pct > 60 ? 'hp-high' : pct > 30 ? 'hp-mid' : 'hp-low');
         num.textContent = `${combatant.hp} / ${combatant.maxHp}`;
     }
 
-    hpClass(pct) {
-        if (pct > 60) return 'hp-high';
-        if (pct > 30) return 'hp-mid';
-        return 'hp-low';
+    updateShields() {
+        this.setShieldBadge('player', this.player.shield);
+        this.setShieldBadge('enemy', this.enemy.shield);
+    }
+
+    setShieldBadge(side, value) {
+        const badge = side === 'player' ? this.dom.playerShieldBadge : this.dom.enemyShieldBadge;
+        const span  = side === 'player' ? this.dom.playerShieldVal : this.dom.enemyShieldVal;
+        if (value > 0) {
+            badge.classList.remove('hidden');
+            span.textContent = value;
+        } else {
+            badge.classList.add('hidden');
+        }
     }
 
     log(msg, type = '') {
@@ -118,7 +137,7 @@ export class GameEngine {
         this.dom.logBody.scrollTop = this.dom.logBody.scrollHeight;
     }
 
-    /* ---------- Turn flow ---------- */
+    /* ========== Turn flow ========== */
 
     async onCardClick(index) {
         if (this.busy || this.gameOver || this.phase !== TurnPhase.PLAYER) return;
@@ -126,13 +145,13 @@ export class GameEngine {
         this.setCardsEnabled(false);
 
         const card = this.player.hand[index];
-
-        // --- Player plays ---
         this.log(`▶ 你使用了「${card.name}」！`, 'player');
-        await this.animateAttack('player');
-        this.applyEffect(card, this.enemy);
-        await this.animateHit('enemy', card.effectValue);
-        this.updateHpBars();
+
+        if (card.effectType === CardEffect.DAMAGE) {
+            await this.performAttack('player', this.enemy, 'enemy', card.effectValue);
+        } else if (card.effectType === CardEffect.SHIELD) {
+            await this.performDefense('player', this.player, card.effectValue);
+        }
 
         if (!this.enemy.isAlive()) {
             this.log(`💀 ${this.enemy.name} 被击败了！`, 'result');
@@ -141,18 +160,14 @@ export class GameEngine {
             return;
         }
 
-        // --- Switch to enemy turn ---
+        // --- Enemy turn ---
         this.phase = TurnPhase.ENEMY;
         this.updateTurnBanner();
         await this.delay(600);
 
-        // --- Enemy plays ---
         const enemyCard = createAttackCard();
         this.log(`▶ ${this.enemy.name} 使用了「${enemyCard.name}」！`, 'enemy');
-        await this.animateAttack('enemy');
-        this.applyEffect(enemyCard, this.player);
-        await this.animateHit('player', enemyCard.effectValue);
-        this.updateHpBars();
+        await this.performAttack('enemy', this.player, 'player', enemyCard.effectValue);
 
         if (!this.player.isAlive()) {
             this.log(`💀 ${this.player.name} 被击败了！`, 'result');
@@ -161,28 +176,55 @@ export class GameEngine {
             return;
         }
 
-        // --- Next round ---
+        // --- Next round: clear shields ---
         await this.delay(350);
+        this.player.clearShield();
+        this.enemy.clearShield();
         this.phase = TurnPhase.PLAYER;
         this.round++;
-        this.updateTurnBanner();
+        this.syncUI();
         this.setCardsEnabled(true);
         this.busy = false;
     }
 
-    applyEffect(card, target) {
-        if (card.effectType === CardEffect.DAMAGE) {
-            target.takeDamage(card.effectValue);
+    /* ========== Actions ========== */
+
+    async performAttack(attackerSide, target, targetSide, amount) {
+        await this.animateAttack(attackerSide);
+
+        const shieldBefore = target.shield;
+        target.takeDamage(amount);
+        const absorbed = shieldBefore - target.shield;
+        const actual = amount - absorbed;
+
+        if (absorbed > 0) {
+            this.log(`  🛡️ ${target.name}的护盾抵消了 ${absorbed} 点伤害！`, 'system');
         }
+
+        if (actual > 0) {
+            await this.animateHit(targetSide, actual);
+            this.log(`  对 ${target.name} 造成了 ${actual} 点伤害！`, attackerSide);
+        } else {
+            await this.animateShieldBlock(targetSide);
+            this.log(`  攻击被完全抵挡！`, 'system');
+        }
+
+        this.updateHpBars();
+        this.updateShields();
     }
 
-    /* ---------- Animations ---------- */
+    async performDefense(side, combatant, amount) {
+        combatant.addShield(amount);
+        await this.animateDefense(side);
+        this.log(`  🛡️ 获得了 ${amount} 点护盾！`, side);
+        this.updateShields();
+    }
+
+    /* ========== Animations ========== */
 
     async animateAttack(side) {
         const frame = side === 'player' ? this.dom.playerFrame : this.dom.enemyFrame;
-        frame.classList.remove('anim-attack');
-        void frame.offsetWidth;
-        frame.classList.add('anim-attack');
+        this.retrigger(frame, 'anim-attack');
         await this.delay(400);
         frame.classList.remove('anim-attack');
     }
@@ -191,27 +233,51 @@ export class GameEngine {
         const panel = side === 'player' ? this.dom.playerPanel : this.dom.enemyPanel;
         const frame = side === 'player' ? this.dom.playerFrame : this.dom.enemyFrame;
 
-        // Shake + flash
-        panel.classList.remove('anim-hit');
-        frame.classList.remove('anim-flash');
-        void panel.offsetWidth;
-        panel.classList.add('anim-hit');
-        frame.classList.add('anim-flash');
+        this.retrigger(panel, 'anim-hit');
+        this.retrigger(frame, 'anim-flash');
 
-        // Floating damage number
         const popup = document.createElement('div');
         popup.className = 'dmg-popup';
         popup.textContent = `-${amount}`;
         panel.appendChild(popup);
 
         await this.delay(700);
-
         panel.classList.remove('anim-hit');
         frame.classList.remove('anim-flash');
         popup.remove();
     }
 
-    /* ---------- Game over ---------- */
+    async animateDefense(side) {
+        const frame = side === 'player' ? this.dom.playerFrame : this.dom.enemyFrame;
+        this.retrigger(frame, 'anim-defend');
+        await this.delay(600);
+        frame.classList.remove('anim-defend');
+    }
+
+    async animateShieldBlock(side) {
+        const panel = side === 'player' ? this.dom.playerPanel : this.dom.enemyPanel;
+        const frame = side === 'player' ? this.dom.playerFrame : this.dom.enemyFrame;
+
+        this.retrigger(frame, 'anim-shield-block');
+
+        const popup = document.createElement('div');
+        popup.className = 'shield-popup';
+        popup.textContent = '🛡️';
+        panel.appendChild(popup);
+
+        await this.delay(650);
+        frame.classList.remove('anim-shield-block');
+        popup.remove();
+    }
+
+    /** Remove then re-add a class, forcing the browser to restart the animation. */
+    retrigger(el, cls) {
+        el.classList.remove(cls);
+        void el.offsetWidth;
+        el.classList.add(cls);
+    }
+
+    /* ========== Game over ========== */
 
     showResult(won) {
         this.gameOver = true;
@@ -228,13 +294,12 @@ export class GameEngine {
         this.dom.logBody.innerHTML = '';
         this.initState();
         this.renderCards();
-        this.updateHpBars();
-        this.updateTurnBanner();
+        this.syncUI();
         this.setCardsEnabled(true);
         this.log('⚔️ 新的战斗开始！', 'system');
     }
 
-    /* ---------- Utility ---------- */
+    /* ========== Utility ========== */
 
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));

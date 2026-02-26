@@ -1,6 +1,7 @@
 use std::io::{self, BufRead, Write};
 
 use crate::card::attack::create_attack_card;
+use crate::card::defense::create_defense_card;
 use crate::card::CardEffect;
 use crate::character::Player;
 use crate::enemy::Slime;
@@ -19,6 +20,7 @@ impl GameEngine {
     pub fn new() -> Self {
         let mut player = Player::new("勇者", 3);
         player.add_card(create_attack_card());
+        player.add_card(create_defense_card());
 
         let enemy = Slime::new("史莱姆", 3);
 
@@ -47,6 +49,8 @@ impl GameEngine {
             self.phase = self.phase.next();
             if self.phase == TurnPhase::PlayerTurn {
                 self.round += 1;
+                self.player.clear_shield();
+                self.enemy.clear_shield();
             }
         }
 
@@ -76,14 +80,17 @@ impl GameEngine {
         }
 
         let choice = self.read_choice(lines);
-        let card = &self.player.hand[choice];
+        let card = self.player.hand[choice].clone();
 
         println!("\n▶ 你使用了「{}」！", card.name);
 
         match card.effect {
             CardEffect::Damage(amount) => {
-                self.enemy.take_damage(amount);
-                println!("  对 {} 造成了 {} 点伤害！", self.enemy.name(), amount);
+                self.log_damage(&card, amount, "enemy");
+            }
+            CardEffect::Shield(amount) => {
+                self.player.add_shield(amount);
+                println!("  🛡️ 获得了 {} 点护盾！", amount);
             }
         }
         println!();
@@ -95,11 +102,41 @@ impl GameEngine {
 
         match attack.effect {
             CardEffect::Damage(amount) => {
-                self.player.take_damage(amount);
-                println!("  对 {} 造成了 {} 点伤害！", self.player.name(), amount);
+                self.log_damage(&attack, amount, "player");
             }
+            CardEffect::Shield(_) => {}
         }
         println!();
+    }
+
+    /// Applies damage from `card` to the specified target side, printing shield / damage info.
+    fn log_damage(&mut self, _card: &crate::card::Card, amount: i32, target_side: &str) {
+        let (target_name, shield_before) = match target_side {
+            "enemy" => (self.enemy.name().to_string(), self.enemy.shield()),
+            _ => (self.player.name().to_string(), self.player.shield()),
+        };
+
+        match target_side {
+            "enemy" => self.enemy.take_damage(amount),
+            _ => self.player.take_damage(amount),
+        }
+
+        let shield_after = match target_side {
+            "enemy" => self.enemy.shield(),
+            _ => self.player.shield(),
+        };
+
+        let absorbed = shield_before - shield_after;
+        let actual = amount - absorbed;
+
+        if absorbed > 0 {
+            println!("  🛡️ {}的护盾抵消了 {} 点伤害！", target_name, absorbed);
+        }
+        if actual > 0 {
+            println!("  对 {} 造成了 {} 点伤害！", target_name, actual);
+        } else {
+            println!("  攻击被完全抵挡！");
+        }
     }
 
     fn read_choice(&self, lines: &mut impl Iterator<Item = io::Result<String>>) -> usize {
@@ -109,7 +146,7 @@ impl GameEngine {
 
             let line = match lines.next() {
                 Some(Ok(l)) => l,
-                _ => return 0, // EOF → default to first card
+                _ => return 0,
             };
 
             match line.trim().parse::<usize>() {

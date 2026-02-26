@@ -4,10 +4,22 @@ export class Combatant {
         this.name = name;
         this.maxHp = maxHp;
         this.hp = maxHp;
+        this.shield = 0;
     }
 
+    /** Deals damage, absorbing through shield first. */
     takeDamage(amount) {
-        this.hp = Math.max(0, this.hp - amount);
+        const absorbed = Math.min(amount, this.shield);
+        this.shield -= absorbed;
+        this.hp = Math.max(0, this.hp - (amount - absorbed));
+    }
+
+    addShield(amount) {
+        this.shield += amount;
+    }
+
+    clearShield() {
+        this.shield = 0;
     }
 
     isAlive() {
