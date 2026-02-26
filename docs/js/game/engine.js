@@ -26,7 +26,6 @@ export class GameEngine {
         this.renderSkills();
         this.syncUI();
         this.log('⚔️ 战斗开始！勇者 vs 史莱姆', 'system');
-        if (this.music) this.music.playBattleBGM();
     }
 
     /* ========== Initialisation ========== */
@@ -177,8 +176,16 @@ export class GameEngine {
 
     /* ========== Turn flow ========== */
 
+    /** Start battle BGM on the first user gesture (browser audio policy). */
+    _ensureBGM() {
+        if (this.music && this.music.currentTrack !== 'battle') {
+            this.music.playBattleBGM();
+        }
+    }
+
     async onCardClick(index) {
         if (this.busy || this.gameOver || this.phase !== TurnPhase.PLAYER) return;
+        this._ensureBGM();
         this.busy = true;
         this.setCardsEnabled(false);
 
@@ -199,6 +206,7 @@ export class GameEngine {
         const skill = this.player.skills[index];
         if (!skill.isReady()) return;
 
+        this._ensureBGM();
         this.busy = true;
         this.setCardsEnabled(false);
 
