@@ -3,6 +3,8 @@ import { Slime } from '../enemy/slime.js';
 import { createAttackCard } from '../card/attack.js';
 import { createDefenseCard } from '../card/defense.js';
 import { CardEffect } from '../card/card.js';
+import { SkillEffect } from '../skill/skill.js';
+import { createEmergencyHeal } from '../skill/emergency_heal.js';
 import { TurnPhase, phaseLabel } from '../mechanics/turn.js';
 
 /**
@@ -14,6 +16,7 @@ export class GameEngine {
         this.bindRestart();
         this.initState();
         this.renderCards();
+        this.renderSkills();
         this.syncUI();
         this.log('⚔️ 战斗开始！勇者 vs 史莱姆', 'system');
     }
@@ -24,6 +27,7 @@ export class GameEngine {
         this.player = new Player('勇者', 3);
         this.player.addCard(createAttackCard());
         this.player.addCard(createDefenseCard());
+        this.player.equipSkill(createEmergencyHeal());
         this.enemy = new Slime('史莱姆', 3);
         this.phase = TurnPhase.PLAYER;
         this.round = 1;
@@ -49,6 +53,7 @@ export class GameEngine {
             enemyShieldVal:    document.getElementById('enemy-shield-val'),
             handCards:         document.getElementById('hand-cards'),
             handHint:          document.getElementById('hand-hint'),
+            skillCards:        document.getElementById('skill-cards'),
             logBody:           document.getElementById('log-body'),
             overlay:           document.getElementById('overlay'),
             resultIcon:        document.getElementById('result-icon'),
@@ -80,11 +85,35 @@ export class GameEngine {
         });
     }
 
+    renderSkills() {
+        if (!this.dom.skillCards) return;
+        this.dom.skillCards.innerHTML = '';
+        this.player.skills.forEach((skill, i) => {
+            const el = document.createElement('div');
+            el.className = 'card skill-card' + (skill.isReady() ? '' : ' card-disabled');
+            el.dataset.skillIndex = i;
+            el.innerHTML = `
+                <div class="card-icon">${skill.icon}</div>
+                <div class="card-name">${skill.name}</div>
+                <div class="card-desc">${skill.description}</div>
+                <div class="card-value">${skill.isReady() ? '可用' : `冷却 ${skill.currentCooldown} 回合`}</div>
+            `;
+            el.addEventListener('click', () => this.onSkillClick(i));
+            this.dom.skillCards.appendChild(el);
+        });
+    }
+
     setCardsEnabled(enabled) {
         this.dom.handCards.querySelectorAll('.card').forEach(c =>
             c.classList.toggle('card-disabled', !enabled)
         );
-        this.dom.handHint.textContent = enabled ? '点击卡牌使用' : '等待中…';
+        if (this.dom.skillCards) {
+            this.dom.skillCards.querySelectorAll('.skill-card').forEach((c, i) => {
+                const onCooldown = !this.player.skills[i].isReady();
+                c.classList.toggle('card-disabled', !enabled || onCooldown);
+            });
+        }
+        this.dom.handHint.textContent = enabled ? '点击卡牌或技能使用' : '等待中…';
     }
 
     syncUI() {
@@ -153,6 +182,37 @@ export class GameEngine {
             await this.performDefense('player', this.player, card.effectValue);
         }
 
+        await this.afterPlayerAction();
+    }
+
+    async onSkillClick(index) {
+        if (this.busy || this.gameOver || this.phase !== TurnPhase.PLAYER) return;
+        const skill = this.player.skills[index];
+        if (!skill.isReady()) return;
+
+        this.busy = true;
+        this.setCardsEnabled(false);
+
+        this.log(`▶ 你使用了技能「${skill.name}」！`, 'player');
+
+        if (skill.effectType === SkillEffect.HEAL) {
+            const healed = this.player.heal(skill.effectValue);
+            await this.animateHeal('player');
+            if (healed > 0) {
+                this.log(`  ❤️ 恢复了 ${healed} 点生命值！`, 'player');
+            } else {
+                this.log(`  ❤️ 生命值已满，未恢复。`, 'system');
+            }
+            this.updateHpBars();
+        }
+
+        skill.triggerCooldown();
+        this.renderSkills();
+
+        await this.afterPlayerAction();
+    }
+
+    async afterPlayerAction() {
         if (!this.enemy.isAlive()) {
             this.log(`💀 ${this.enemy.name} 被击败了！`, 'result');
             await this.delay(400);
@@ -160,7 +220,6 @@ export class GameEngine {
             return;
         }
 
-        // --- Enemy turn ---
         this.phase = TurnPhase.ENEMY;
         this.updateTurnBanner();
         await this.delay(600);
@@ -176,13 +235,14 @@ export class GameEngine {
             return;
         }
 
-        // --- Next round: clear shields ---
         await this.delay(350);
         this.player.clearShield();
         this.enemy.clearShield();
+        this.player.tickSkillCooldowns();
         this.phase = TurnPhase.PLAYER;
         this.round++;
         this.syncUI();
+        this.renderSkills();
         this.setCardsEnabled(true);
         this.busy = false;
     }
@@ -270,6 +330,18 @@ export class GameEngine {
         popup.remove();
     }
 
+    async animateHeal(side) {
+        const panel = side === 'player' ? this.dom.playerPanel : this.dom.enemyPanel;
+
+        const popup = document.createElement('div');
+        popup.className = 'heal-popup';
+        popup.textContent = '+❤️';
+        panel.appendChild(popup);
+
+        await this.delay(700);
+        popup.remove();
+    }
+
     /** Remove then re-add a class, forcing the browser to restart the animation. */
     retrigger(el, cls) {
         el.classList.remove(cls);
@@ -294,6 +366,7 @@ export class GameEngine {
         this.dom.logBody.innerHTML = '';
         this.initState();
         this.renderCards();
+        this.renderSkills();
         this.syncUI();
         this.setCardsEnabled(true);
         this.log('⚔️ 新的战斗开始！', 'system');

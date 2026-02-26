@@ -22,6 +22,13 @@ export class Combatant {
         this.shield = 0;
     }
 
+    /** Heal HP, capped at maxHp. Returns actual amount healed. */
+    heal(amount) {
+        const before = this.hp;
+        this.hp = Math.min(this.maxHp, this.hp + amount);
+        return this.hp - before;
+    }
+
     isAlive() {
         return this.hp > 0;
     }
