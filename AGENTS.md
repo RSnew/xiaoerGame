@@ -15,20 +15,34 @@ This is a **Rust** turn-based card game project (`xiaoerGame`). The toolchain re
 | Run (interactive) | `cargo run` |
 | Run (non-interactive, piped) | `printf '1\n1\n1\n' \| cargo run` |
 
+| Serve web version | `python3 -m http.server 8080` (from `web/`) |
+
 ### Project layout
 
 ```
-src/
-├── main.rs            # entry point
-├── character/         # player-controlled characters
-├── enemy/             # enemy types (Slime, …)
-├── card/              # card definitions (attack, …)
-├── mechanics/         # combat trait, turn system
-└── game/              # game engine / main loop
+src/                   # Rust CLI version
+├── main.rs
+├── character/
+├── enemy/
+├── card/
+├── mechanics/
+└── game/
+
+web/                   # Web browser version (pure ES Modules, no build step)
+├── index.html
+├── style.css
+└── js/
+    ├── main.js
+    ├── character/
+    ├── enemy/
+    ├── card/
+    ├── mechanics/
+    └── game/
 ```
 
 ### Notes
 
-- The game reads from stdin. When testing non-interactively, pipe input (one line per card choice, e.g. `printf '1\n1\n1\n'`).
-- No external dependencies — the project builds with the Rust standard library only.
-- Cross-platform: compiles on Linux, macOS, and Windows via `cargo build`.
+- **Rust CLI**: reads from stdin; test non-interactively with `printf '1\n1\n1\n' | cargo run`.
+- **Web version**: serve with any static HTTP server (ES Modules need HTTP, not `file://`). Example: `cd web && python3 -m http.server 8080`, then open `http://localhost:8080`.
+- No external dependencies in either version.
+- Cross-platform: Rust compiles on Linux/macOS/Windows; web runs in any modern browser.
