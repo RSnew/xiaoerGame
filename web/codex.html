@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图鉴 - 小二的回合制卡牌游戏</title>
+    <link rel="stylesheet" href="codex.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav id="top-nav">
+    <a href="index.html" class="nav-link">🎮 返回游戏</a>
+    <span class="nav-title">📖 图鉴</span>
+</nav>
+
+<!-- Category Tabs -->
+<div id="tabs">
+    <button class="tab active" data-cat="characters">👤 角色</button>
+    <button class="tab" data-cat="enemies">👾 怪物</button>
+    <button class="tab" data-cat="cards">🃏 卡牌</button>
+</div>
+
+<!-- Grid View -->
+<main id="grid-view">
+    <div id="grid"></div>
+</main>
+
+<!-- Detail View (hidden by default) -->
+<section id="detail-view" class="hidden">
+    <button id="back-btn">← 返回列表</button>
+
+    <div id="detail-layout">
+        <!-- Left: Image -->
+        <div id="detail-left">
+            <div id="portrait-frame">
+                <img id="portrait-img" alt="portrait" />
+            </div>
+        </div>
+
+        <!-- Right: Info -->
+        <div id="detail-right">
+            <!-- Top: Basic Info -->
+            <div id="info-top">
+                <h2 id="d-name"></h2>
+                <p id="d-title" class="subtitle"></p>
+                <table id="d-stats"></table>
+            </div>
+
+            <!-- Bottom: Skills / Intro / Terms -->
+            <div id="info-bottom">
+                <div id="d-skills-section" class="info-section hidden">
+                    <h3>🗡️ 技能</h3>
+                    <div id="d-skills"></div>
+                </div>
+
+                <div id="d-intro-section" class="info-section">
+                    <h3>📜 简介</h3>
+                    <p id="d-intro"></p>
+                </div>
+
+                <div id="d-terms-section" class="info-section hidden">
+                    <h3>📘 名词解释</h3>
+                    <div id="d-terms"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script type="module" src="js/codex/codex.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 320">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1040"/>
+      <stop offset="100%" stop-color="#0c0820"/>
+    </linearGradient>
+    <radialGradient id="body" cx="0.5" cy="0.6" r="0.5">
+      <stop offset="0%" stop-color="#60f090"/>
+      <stop offset="100%" stop-color="#20a050"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#40ff80" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#40ff80" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="240" height="320" rx="16" fill="url(#bg)"/>
+  <rect x="6" y="6" width="228" height="308" rx="12" fill="none" stroke="#40a060" stroke-width="1.5" opacity="0.3"/>
+  <!-- Glow -->
+  <ellipse cx="120" cy="185" rx="80" ry="70" fill="url(#glow)"/>
+  <!-- Body -->
+  <path d="M60 210 Q60 140 90 120 Q105 110 120 112 Q135 110 150 120 Q180 140 180 210 Q180 240 150 248 Q120 255 90 248 Q60 240 60 210Z" fill="url(#body)" opacity="0.85"/>
+  <path d="M70 205 Q70 150 100 130 Q115 122 120 124 Q130 122 145 132 Q170 150 170 205 Q170 225 145 232 Q120 238 95 232 Q70 225 70 205Z" fill="#70ffa0" opacity="0.25"/>
+  <!-- Eyes -->
+  <ellipse cx="98" cy="175" rx="12" ry="14" fill="white"/>
+  <ellipse cx="142" cy="175" rx="12" ry="14" fill="white"/>
+  <circle cx="101" cy="178" r="6" fill="#1a1040"/>
+  <circle cx="145" cy="178" r="6" fill="#1a1040"/>
+  <circle cx="103" cy="176" r="2" fill="white"/>
+  <circle cx="147" cy="176" r="2" fill="white"/>
+  <!-- Mouth -->
+  <path d="M108 202 Q120 215 132 202" fill="none" stroke="#1a1040" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Drops -->
+  <ellipse cx="55" cy="230" rx="6" ry="8" fill="#40d870" opacity="0.4"/>
+  <ellipse cx="185" cy="225" rx="5" ry="7" fill="#40d870" opacity="0.3"/>
+</svg>
