@@ -11,7 +11,12 @@ import { TurnPhase, phaseLabel } from '../mechanics/turn.js';
  * Drives the game: manages state, UI updates, animations, and turn flow.
  */
 export class GameEngine {
-    constructor() {
+    /**
+     * @param {Object} options
+     * @param {function(): Promise<number|null>} [options.onVictory] - called on win, returns gold earned
+     */
+    constructor(options = {}) {
+        this.onVictory = options.onVictory || (() => Promise.resolve(null));
         this.cacheDom();
         this.bindRestart();
         this.initState();
@@ -59,6 +64,7 @@ export class GameEngine {
             resultIcon:        document.getElementById('result-icon'),
             resultTitle:       document.getElementById('result-title'),
             resultDetail:      document.getElementById('result-detail'),
+            resultGold:        document.getElementById('result-gold'),
         };
     }
 
@@ -351,18 +357,31 @@ export class GameEngine {
 
     /* ========== Game over ========== */
 
-    showResult(won) {
+    async showResult(won) {
         this.gameOver = true;
         this.dom.resultIcon.textContent  = won ? '🎉' : '💀';
         this.dom.resultTitle.textContent = won ? '你胜利了！' : '你被击败了…';
         this.dom.resultDetail.textContent = won
             ? `经过 ${this.round} 回合激战，${this.player.name} 以 ${this.player.hp}/${this.player.maxHp} HP 获胜！`
             : `${this.enemy.name} 在第 ${this.round} 回合击败了你。`;
+
+        this.dom.resultGold.classList.add('hidden');
+        if (won) {
+            try {
+                const reward = await this.onVictory();
+                if (reward) {
+                    this.dom.resultGold.textContent = `💰 获得了 ${reward} 金币！`;
+                    this.dom.resultGold.classList.remove('hidden');
+                }
+            } catch { /* auth not configured */ }
+        }
+
         this.dom.overlay.classList.remove('hidden');
     }
 
     restart() {
         this.dom.overlay.classList.add('hidden');
+        this.dom.resultGold.classList.add('hidden');
         this.dom.logBody.innerHTML = '';
         this.initState();
         this.renderCards();
