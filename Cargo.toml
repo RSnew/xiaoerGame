@@ -1,0 +1,7 @@
+[package]
+name = "xiaoer_game"
+version = "0.1.0"
+edition = "2021"
+description = "小二的回合制卡牌游戏"
+
+[dependencies]

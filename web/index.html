@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小二的回合制卡牌游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+    <!-- Header / Turn Banner -->
+    <header id="turn-banner">
+        <span id="round-text">第 1 回合</span>
+        <span class="dot">·</span>
+        <span id="phase-text" class="phase-player">玩家回合</span>
+    </header>
+
+    <!-- Battlefield -->
+    <section id="battlefield">
+        <!-- Player -->
+        <div class="fighter-panel" id="player-panel">
+            <div class="shield-badge hidden" id="player-shield-badge">🛡️ <span id="player-shield-val">0</span></div>
+            <div class="fighter-frame player-frame" id="player-frame">
+                <span class="fighter-emoji">🗡️</span>
+            </div>
+            <div class="fighter-name">勇者</div>
+            <div class="hp-track">
+                <div class="hp-fill hp-high" id="player-hp-bar" style="width:100%"></div>
+            </div>
+            <div class="hp-num" id="player-hp-num">3 / 3</div>
+        </div>
+
+        <!-- Center -->
+        <div id="center">
+            <div id="vs">VS</div>
+        </div>
+
+        <!-- Enemy -->
+        <div class="fighter-panel" id="enemy-panel">
+            <div class="shield-badge hidden" id="enemy-shield-badge">🛡️ <span id="enemy-shield-val">0</span></div>
+            <div class="fighter-frame enemy-frame" id="enemy-frame">
+                <span class="fighter-emoji">👾</span>
+            </div>
+            <div class="fighter-name">史莱姆</div>
+            <div class="hp-track">
+                <div class="hp-fill hp-high" id="enemy-hp-bar" style="width:100%"></div>
+            </div>
+            <div class="hp-num" id="enemy-hp-num">3 / 3</div>
+        </div>
+    </section>
+
+    <!-- Battle Log -->
+    <section id="log-section">
+        <div id="log-title">📜 战斗日志</div>
+        <div id="log-body"></div>
+    </section>
+
+    <!-- Hand -->
+    <section id="hand-section">
+        <div id="hand-title">🃏 你的手牌</div>
+        <div id="hand-cards"></div>
+        <div id="hand-hint">点击卡牌使用</div>
+    </section>
+</div>
+
+<!-- Game-over overlay -->
+<div id="overlay" class="overlay hidden">
+    <div class="overlay-box">
+        <div id="result-icon"></div>
+        <h2 id="result-title"></h2>
+        <p id="result-detail"></p>
+        <button id="btn-restart">再来一局</button>
+    </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
