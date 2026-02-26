@@ -10,9 +10,12 @@ const REGISTRY = {
         { id: 'attack', path: 'data/cards/attack' },
         { id: 'defense', path: 'data/cards/defense' },
     ],
+    skills: [
+        { id: 'emergency_heal', path: 'data/skills/emergency_heal' },
+    ],
 };
 
-const CAT_LABELS = { characters: '角色', enemies: '怪物', cards: '卡牌' };
+const CAT_LABELS = { characters: '角色', enemies: '怪物', cards: '卡牌', skills: '技能' };
 
 /** In-memory cache: path → parsed info.json */
 const cache = {};

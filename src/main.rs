@@ -3,6 +3,7 @@ mod character;
 mod enemy;
 mod game;
 mod mechanics;
+mod skill;
 
 use game::engine::GameEngine;
 
