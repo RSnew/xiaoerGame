@@ -1,8 +1,13 @@
-use super::{Card, CardEffect};
+use super::{Card, CardEffect, DEFAULT_CARD_COOLDOWN_MS};
 
 /// Creates the basic attack card (deals 1 damage).
 pub fn create_attack_card() -> Card {
-    Card::new("攻击", "造成 1 点伤害", CardEffect::Damage(1))
+    Card::new(
+        "攻击",
+        "造成 1 点伤害",
+        CardEffect::Damage(1),
+        DEFAULT_CARD_COOLDOWN_MS,
+    )
 }
 
 #[cfg(test)]

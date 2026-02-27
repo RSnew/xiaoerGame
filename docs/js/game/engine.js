@@ -5,12 +5,17 @@ import { createDefenseCard } from '../card/defense.js';
 import { CardEffect } from '../card/card.js';
 import { SkillEffect } from '../skill/skill.js';
 import { createEmergencyHeal } from '../skill/emergency_heal.js';
-import { TurnPhase, phaseLabel } from '../mechanics/turn.js';
 import { getEquippedCards, getEquippedSkills } from '../hub/state.js';
 import { getCardById, getSkillById } from '../hub/registry.js';
 
+const ROUND_DURATION_MS = 5000;
+const ROUND_TICK_MS = 200;
+const PLAYER_INITIAL_CARD_COOLDOWN_MS = 1000;
+const ENEMY_INITIAL_CARD_COOLDOWN_MS = 2000;
+const ENEMY_ACTION_BUFFER_MS = 300;
+
 /**
- * Drives the game: manages state, UI updates, animations, and turn flow.
+ * Drives the game: manages state, UI updates, animations, and timed-round flow.
  */
 export class GameEngine {
     /**
@@ -28,11 +33,9 @@ export class GameEngine {
         this.renderSkills();
         this.syncUI();
         this.log('⚔️ 战斗开始！勇者 vs 史莱姆', 'system');
-        const firstName = this.phase === TurnPhase.PLAYER ? this.player.name : this.enemy.name;
-        this.log(`⚡ ${firstName} 抢得先手！`, 'system');
-        if (this.phase === TurnPhase.ENEMY) {
-            this.startEnemyFirstTurn();
-        }
+        this.log('📌 新机制：每回合 5 秒，双方每回合最多行动一次。', 'system');
+        this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
+        this.startRound();
     }
 
     /* ========== Initialisation ========== */
@@ -60,18 +63,24 @@ export class GameEngine {
         } else {
             this.player.equipSkill(createEmergencyHeal());
         }
+        for (const card of this.player.hand) {
+            card.setInitialCooldown(PLAYER_INITIAL_CARD_COOLDOWN_MS);
+        }
 
         this.enemy = new Slime('史莱姆', 3);
-        this.phase = this.decideFirstTurn();
+        this.enemyCard = createAttackCard();
+        this.enemyCard.setInitialCooldown(ENEMY_INITIAL_CARD_COOLDOWN_MS);
+
         this.round = 1;
         this.busy = false;
         this.gameOver = false;
-    }
-
-    decideFirstTurn() {
-        if (this.player.speed > this.enemy.speed) return TurnPhase.PLAYER;
-        if (this.enemy.speed > this.player.speed) return TurnPhase.ENEMY;
-        return Math.random() < 0.5 ? TurnPhase.PLAYER : TurnPhase.ENEMY;
+        this.roundFinishing = false;
+        this.playerActedThisRound = false;
+        this.enemyActedThisRound = false;
+        this.roundEndsAt = 0;
+        this.lastTickAt = 0;
+        this.enemyActionAt = null;
+        this.roundTimerId = null;
     }
 
     cacheDom() {
@@ -112,13 +121,17 @@ export class GameEngine {
         this.dom.handCards.innerHTML = '';
         this.player.hand.forEach((card, i) => {
             const el = document.createElement('div');
-            el.className = 'card';
+            el.className = 'card' + (this.isCardDisabled(card) ? ' card-disabled' : '');
             el.dataset.index = i;
             el.innerHTML = `
                 <div class="card-icon">${card.icon}</div>
                 <div class="card-name">${card.name}</div>
                 <div class="card-desc">${card.description}</div>
-                <div class="card-value">${card.effectType === CardEffect.DAMAGE ? '伤害' : '护盾'} ${card.effectValue}</div>
+                <div class="card-value">${
+                    card.isReady()
+                        ? `${card.effectType === CardEffect.DAMAGE ? '伤害' : '护盾'} ${card.effectValue}`
+                        : `冷却 ${card.remainingCooldownSeconds()} 秒`
+                }</div>
             `;
             el.addEventListener('click', () => this.onCardClick(i));
             this.dom.handCards.appendChild(el);
@@ -130,7 +143,7 @@ export class GameEngine {
         this.dom.skillCards.innerHTML = '';
         this.player.skills.forEach((skill, i) => {
             const el = document.createElement('div');
-            el.className = 'card skill-card' + (skill.isReady() ? '' : ' card-disabled');
+            el.className = 'card skill-card' + (this.isSkillDisabled(skill) ? ' card-disabled' : '');
             el.dataset.skillIndex = i;
             el.innerHTML = `
                 <div class="card-icon">${skill.icon}</div>
@@ -143,29 +156,32 @@ export class GameEngine {
         });
     }
 
-    setCardsEnabled(enabled) {
-        this.dom.handCards.querySelectorAll('.card').forEach(c =>
-            c.classList.toggle('card-disabled', !enabled)
-        );
-        if (this.dom.skillCards) {
-            this.dom.skillCards.querySelectorAll('.skill-card').forEach((c, i) => {
-                const onCooldown = !this.player.skills[i].isReady();
-                c.classList.toggle('card-disabled', !enabled || onCooldown);
-            });
-        }
-        this.dom.handHint.textContent = enabled ? '点击卡牌或技能使用' : '等待中…';
+    canPlayerAct() {
+        return !this.gameOver && !this.busy && !this.playerActedThisRound;
+    }
+
+    isCardDisabled(card) {
+        return !this.canPlayerAct() || !card.isReady();
+    }
+
+    isSkillDisabled(skill) {
+        return !this.canPlayerAct() || !skill.isReady();
     }
 
     syncUI() {
         this.updateTurnBanner();
         this.updateHpBars();
         this.updateShields();
+        this.updateActionHint();
     }
 
     updateTurnBanner() {
         this.dom.roundText.textContent = `第 ${this.round} 回合`;
-        this.dom.phaseText.textContent = phaseLabel(this.phase);
-        this.dom.phaseText.className = this.phase === TurnPhase.PLAYER ? 'phase-player' : 'phase-enemy';
+        const remainingMs = this.roundEndsAt > 0
+            ? Math.max(0, this.roundEndsAt - Date.now())
+            : ROUND_DURATION_MS;
+        this.dom.phaseText.textContent = `剩余 ${(remainingMs / 1000).toFixed(1)} 秒`;
+        this.dom.phaseText.className = 'phase-player';
     }
 
     updateHpBars() {
@@ -198,6 +214,26 @@ export class GameEngine {
         }
     }
 
+    updateActionHint() {
+        if (this.gameOver) {
+            this.dom.handHint.textContent = '战斗结束';
+            return;
+        }
+        if (this.busy) {
+            this.dom.handHint.textContent = '动作结算中…';
+            return;
+        }
+        if (this.playerActedThisRound) {
+            this.dom.handHint.textContent = '本回合已行动，等待下一回合…';
+            return;
+        }
+        const hasReadyCard = this.player.hand.some(card => card.isReady());
+        const hasReadySkill = this.player.skills.some(skill => skill.isReady());
+        this.dom.handHint.textContent = hasReadyCard || hasReadySkill
+            ? '本回合可行动一次：点击卡牌或技能'
+            : '等待冷却中…';
+    }
+
     log(msg, type = '') {
         const div = document.createElement('div');
         div.className = 'log-entry' + (type ? ` log-${type}` : '');
@@ -215,38 +251,119 @@ export class GameEngine {
         }
     }
 
-    async startEnemyFirstTurn() {
-        this.busy = true;
-        this.setCardsEnabled(false);
-        await this.delay(600);
-        await this.doEnemyAction();
+    startRound() {
+        if (this.gameOver) return;
 
-        if (!this.player.isAlive()) {
-            this.log(`💀 ${this.player.name} 被击败了！`, 'result');
-            await this.delay(400);
-            this.showResult(false);
+        this.stopRoundTimer();
+        this.playerActedThisRound = false;
+        this.enemyActedThisRound = false;
+        this.roundFinishing = false;
+
+        const now = Date.now();
+        this.lastTickAt = now;
+        this.roundEndsAt = now + ROUND_DURATION_MS;
+        this.enemyActionAt = this.planEnemyAction(now);
+
+        this.log(`⏱️ 第 ${this.round} 回合开始（5 秒）`, 'system');
+        this.renderCards();
+        this.renderSkills();
+        this.syncUI();
+        this.roundTimerId = window.setInterval(() => this.tickRound(), ROUND_TICK_MS);
+    }
+
+    stopRoundTimer() {
+        if (this.roundTimerId !== null) {
+            clearInterval(this.roundTimerId);
+            this.roundTimerId = null;
+        }
+    }
+
+    planEnemyAction(roundStartMs) {
+        const earliest = roundStartMs + this.enemyCard.remainingCooldownMs;
+        if (earliest >= this.roundEndsAt) return null;
+        const latest = this.roundEndsAt - ENEMY_ACTION_BUFFER_MS;
+        if (earliest >= latest) return earliest;
+        const windowMs = latest - earliest;
+        return earliest + Math.floor(Math.random() * (windowMs + 1));
+    }
+
+    tickRound() {
+        if (this.gameOver) {
+            this.stopRoundTimer();
             return;
         }
 
-        this.phase = TurnPhase.PLAYER;
+        const now = Date.now();
+        const deltaMs = Math.max(0, now - this.lastTickAt);
+        this.lastTickAt = now;
+        this.tickCardCooldowns(deltaMs);
+
+        if (
+            !this.enemyActedThisRound &&
+            this.enemyActionAt !== null &&
+            now >= this.enemyActionAt &&
+            now < this.roundEndsAt &&
+            this.enemyCard.isReady() &&
+            !this.busy
+        ) {
+            void this.executeEnemyAction();
+        }
+
         this.updateTurnBanner();
-        this.setCardsEnabled(true);
-        this.busy = false;
+        this.renderCards();
+        this.renderSkills();
+        this.updateActionHint();
+
+        if (now >= this.roundEndsAt && !this.roundFinishing && !this.busy) {
+            void this.finishRound();
+        }
     }
 
-    async doEnemyAction() {
-        const enemyCard = createAttackCard();
-        this.log(`▶ ${this.enemy.name} 使用了「${enemyCard.name}」！`, 'enemy');
-        await this.performAttack('enemy', this.player, 'player', enemyCard.effectValue);
+    tickCardCooldowns(deltaMs) {
+        for (const card of this.player.hand) {
+            card.tickCooldown(deltaMs);
+        }
+        this.enemyCard.tickCooldown(deltaMs);
+    }
+
+    async finishRound() {
+        if (this.roundFinishing || this.gameOver) return;
+        this.roundFinishing = true;
+        this.stopRoundTimer();
+
+        if (!this.playerActedThisRound) {
+            this.log('⌛ 你本回合未行动。', 'system');
+        }
+        if (!this.enemyActedThisRound) {
+            this.log(`⌛ ${this.enemy.name} 本回合未行动。`, 'system');
+        }
+
+        this.player.clearShield();
+        this.enemy.clearShield();
+        this.player.tickSkillCooldowns();
+        this.round++;
+
+        this.syncUI();
+        this.renderCards();
+        this.renderSkills();
+
+        this.roundFinishing = false;
+        this.startRound();
     }
 
     async onCardClick(index) {
-        if (this.busy || this.gameOver || this.phase !== TurnPhase.PLAYER) return;
-        this._ensureBGM();
-        this.busy = true;
-        this.setCardsEnabled(false);
-
+        if (!this.canPlayerAct()) return;
         const card = this.player.hand[index];
+        if (!card || !card.isReady()) return;
+
+        this._ensureBGM();
+        this.playerActedThisRound = true;
+        this.busy = true;
+        card.triggerCooldown();
+        this.renderCards();
+        this.renderSkills();
+        this.updateActionHint();
+
         this.log(`▶ 你使用了「${card.name}」！`, 'player');
 
         if (card.effectType === CardEffect.DAMAGE) {
@@ -255,17 +372,25 @@ export class GameEngine {
             await this.performDefense('player', this.player, card.effectValue);
         }
 
-        await this.afterPlayerAction();
+        const finished = await this.checkGameOverAfterAction();
+        this.busy = false;
+        this.renderCards();
+        this.renderSkills();
+        this.syncUI();
+        if (finished) return;
     }
 
     async onSkillClick(index) {
-        if (this.busy || this.gameOver || this.phase !== TurnPhase.PLAYER) return;
+        if (!this.canPlayerAct()) return;
         const skill = this.player.skills[index];
         if (!skill.isReady()) return;
 
         this._ensureBGM();
+        this.playerActedThisRound = true;
         this.busy = true;
-        this.setCardsEnabled(false);
+        this.renderCards();
+        this.renderSkills();
+        this.updateActionHint();
 
         this.log(`▶ 你使用了技能「${skill.name}」！`, 'player');
 
@@ -283,40 +408,47 @@ export class GameEngine {
         skill.triggerCooldown();
         this.renderSkills();
 
-        await this.afterPlayerAction();
+        const finished = await this.checkGameOverAfterAction();
+        this.busy = false;
+        this.renderCards();
+        this.renderSkills();
+        this.syncUI();
+        if (finished) return;
     }
 
-    async afterPlayerAction() {
+    async executeEnemyAction() {
+        if (this.enemyActedThisRound || this.gameOver || !this.enemyCard.isReady()) return;
+        if (this.busy) return;
+
+        this.enemyActedThisRound = true;
+        this.busy = true;
+
+        this.enemyCard.triggerCooldown();
+        this.log(`▶ ${this.enemy.name} 使用了「${this.enemyCard.name}」！`, 'enemy');
+        await this.performAttack('enemy', this.player, 'player', this.enemyCard.effectValue);
+
+        const finished = await this.checkGameOverAfterAction();
+        this.busy = false;
+        this.renderCards();
+        this.renderSkills();
+        this.syncUI();
+        if (finished) return;
+    }
+
+    async checkGameOverAfterAction() {
         if (!this.enemy.isAlive()) {
             this.log(`💀 ${this.enemy.name} 被击败了！`, 'result');
             await this.delay(400);
-            this.showResult(true);
-            return;
+            await this.showResult(true);
+            return true;
         }
-
-        this.phase = TurnPhase.ENEMY;
-        this.updateTurnBanner();
-        await this.delay(600);
-
-        await this.doEnemyAction();
-
         if (!this.player.isAlive()) {
             this.log(`💀 ${this.player.name} 被击败了！`, 'result');
             await this.delay(400);
-            this.showResult(false);
-            return;
+            await this.showResult(false);
+            return true;
         }
-
-        await this.delay(350);
-        this.player.clearShield();
-        this.enemy.clearShield();
-        this.player.tickSkillCooldowns();
-        this.phase = TurnPhase.PLAYER;
-        this.round++;
-        this.syncUI();
-        this.renderSkills();
-        this.setCardsEnabled(true);
-        this.busy = false;
+        return false;
     }
 
     /* ========== Actions ========== */
@@ -424,6 +556,7 @@ export class GameEngine {
     /* ========== Game over ========== */
 
     async showResult(won) {
+        this.stopRoundTimer();
         this.gameOver = true;
 
         if (this.music) {
@@ -452,6 +585,7 @@ export class GameEngine {
     }
 
     restart() {
+        this.stopRoundTimer();
         this.dom.overlay.classList.add('hidden');
         this.dom.resultGold.classList.add('hidden');
         this.dom.logBody.innerHTML = '';
@@ -459,13 +593,10 @@ export class GameEngine {
         this.renderCards();
         this.renderSkills();
         this.syncUI();
-        this.setCardsEnabled(true);
         this.log('⚔️ 新的战斗开始！', 'system');
-        const firstName = this.phase === TurnPhase.PLAYER ? this.player.name : this.enemy.name;
-        this.log(`⚡ ${firstName} 抢得先手！`, 'system');
-        if (this.phase === TurnPhase.ENEMY) {
-            this.startEnemyFirstTurn();
-        }
+        this.log('📌 新机制：每回合 5 秒，双方每回合最多行动一次。', 'system');
+        this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
+        this.startRound();
         if (this.music) this.music.playBattleBGM();
     }
 
