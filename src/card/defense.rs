@@ -1,8 +1,13 @@
-use super::{Card, CardEffect};
+use super::{Card, CardEffect, DEFAULT_CARD_COOLDOWN_MS};
 
 /// Creates the basic defense card (1 shield for 1 turn).
 pub fn create_defense_card() -> Card {
-    Card::new("防御", "获得 1 点护盾，持续 1 回合", CardEffect::Shield(1))
+    Card::new(
+        "防御",
+        "获得 1 点护盾，持续 1 回合",
+        CardEffect::Shield(1),
+        DEFAULT_CARD_COOLDOWN_MS,
+    )
 }
 
 #[cfg(test)]
