@@ -26,6 +26,11 @@ export class GameEngine {
         this.renderSkills();
         this.syncUI();
         this.log('⚔️ 战斗开始！勇者 vs 史莱姆', 'system');
+        const firstName = this.phase === TurnPhase.PLAYER ? this.player.name : this.enemy.name;
+        this.log(`⚡ ${firstName} 抢得先手！`, 'system');
+        if (this.phase === TurnPhase.ENEMY) {
+            this.startEnemyFirstTurn();
+        }
     }
 
     /* ========== Initialisation ========== */
@@ -55,10 +60,16 @@ export class GameEngine {
         }
 
         this.enemy = new Slime('史莱姆', 3);
-        this.phase = TurnPhase.PLAYER;
+        this.phase = this.decideFirstTurn();
         this.round = 1;
         this.busy = false;
         this.gameOver = false;
+    }
+
+    decideFirstTurn() {
+        if (this.player.speed > this.enemy.speed) return TurnPhase.PLAYER;
+        if (this.enemy.speed > this.player.speed) return TurnPhase.ENEMY;
+        return Math.random() < 0.5 ? TurnPhase.PLAYER : TurnPhase.ENEMY;
     }
 
     cacheDom() {
@@ -195,6 +206,31 @@ export class GameEngine {
 
     /* ========== Turn flow ========== */
 
+    async startEnemyFirstTurn() {
+        this.busy = true;
+        this.setCardsEnabled(false);
+        await this.delay(600);
+        await this.doEnemyAction();
+
+        if (!this.player.isAlive()) {
+            this.log(`💀 ${this.player.name} 被击败了！`, 'result');
+            await this.delay(400);
+            this.showResult(false);
+            return;
+        }
+
+        this.phase = TurnPhase.PLAYER;
+        this.updateTurnBanner();
+        this.setCardsEnabled(true);
+        this.busy = false;
+    }
+
+    async doEnemyAction() {
+        const enemyCard = createAttackCard();
+        this.log(`▶ ${this.enemy.name} 使用了「${enemyCard.name}」！`, 'enemy');
+        await this.performAttack('enemy', this.player, 'player', enemyCard.effectValue);
+    }
+
     async onCardClick(index) {
         if (this.busy || this.gameOver || this.phase !== TurnPhase.PLAYER) return;
         this.busy = true;
@@ -251,9 +287,7 @@ export class GameEngine {
         this.updateTurnBanner();
         await this.delay(600);
 
-        const enemyCard = createAttackCard();
-        this.log(`▶ ${this.enemy.name} 使用了「${enemyCard.name}」！`, 'enemy');
-        await this.performAttack('enemy', this.player, 'player', enemyCard.effectValue);
+        await this.doEnemyAction();
 
         if (!this.player.isAlive()) {
             this.log(`💀 ${this.player.name} 被击败了！`, 'result');
@@ -410,6 +444,11 @@ export class GameEngine {
         this.syncUI();
         this.setCardsEnabled(true);
         this.log('⚔️ 新的战斗开始！', 'system');
+        const firstName = this.phase === TurnPhase.PLAYER ? this.player.name : this.enemy.name;
+        this.log(`⚡ ${firstName} 抢得先手！`, 'system');
+        if (this.phase === TurnPhase.ENEMY) {
+            this.startEnemyFirstTurn();
+        }
     }
 
     /* ========== Utility ========== */

@@ -5,6 +5,7 @@ pub struct Slime {
     name: String,
     hp: i32,
     max_hp: i32,
+    speed: i32,
     shield: i32,
 }
 
@@ -14,6 +15,7 @@ impl Slime {
             name: name.to_string(),
             hp: max_hp,
             max_hp,
+            speed: 3,
             shield: 0,
         }
     }
@@ -28,6 +30,9 @@ impl Combatant for Slime {
     }
     fn max_hp(&self) -> i32 {
         self.max_hp
+    }
+    fn speed(&self) -> i32 {
+        self.speed
     }
     fn shield(&self) -> i32 {
         self.shield

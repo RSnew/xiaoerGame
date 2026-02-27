@@ -1,9 +1,10 @@
 /** Base class for all combatants (players, enemies, etc.). */
 export class Combatant {
-    constructor(name, maxHp) {
+    constructor(name, maxHp, speed = 3) {
         this.name = name;
         this.maxHp = maxHp;
         this.hp = maxHp;
+        this.speed = speed;
         this.shield = 0;
     }
 

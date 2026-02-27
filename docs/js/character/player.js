@@ -5,8 +5,8 @@ export const MAX_SKILLS = 2;
 
 /** The player-controlled character. */
 export class Player extends Combatant {
-    constructor(name, maxHp) {
-        super(name, maxHp);
+    constructor(name, maxHp, speed = 3) {
+        super(name, maxHp, speed);
         this.hand = [];
         this.skills = [];
     }

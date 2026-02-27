@@ -9,6 +9,7 @@ pub struct Player {
     name: String,
     hp: i32,
     max_hp: i32,
+    speed: i32,
     shield: i32,
     pub hand: Vec<Card>,
     pub skills: Vec<Skill>,
@@ -20,6 +21,7 @@ impl Player {
             name: name.to_string(),
             hp: max_hp,
             max_hp,
+            speed: 3,
             shield: 0,
             hand: Vec::new(),
             skills: Vec::new(),
@@ -56,6 +58,9 @@ impl Combatant for Player {
     }
     fn max_hp(&self) -> i32 {
         self.max_hp
+    }
+    fn speed(&self) -> i32 {
+        self.speed
     }
     fn shield(&self) -> i32 {
         self.shield
