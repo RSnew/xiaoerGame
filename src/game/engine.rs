@@ -28,6 +28,13 @@ pub struct GameEngine {
     enemy_card: Card,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PlayerActionResult {
+    None,
+    CardUsed,
+    SkillUsed,
+}
+
 impl GameEngine {
     pub fn new() -> Self {
         let mut player = Player::new("勇者", 3);
@@ -82,29 +89,34 @@ impl GameEngine {
     fn play_round(&mut self, input_rx: &Receiver<String>) {
         self.print_status();
         self.print_actions();
-        println!("⏱️ 本回合持续 5 秒，输入编号并回车即可行动（每回合仅能行动一次）。");
+        println!("⏱️ 本回合持续 5 秒：卡牌每回合仅能使用一次；技能不受回合次数限制，可与卡牌同回合使用。");
 
         let round_start = Instant::now();
         let round_end = round_start + ROUND_DURATION;
         let mut last_tick = round_start;
         let enemy_action_at = self.plan_enemy_action_time(round_start, round_end);
 
-        let mut player_acted = false;
+        let mut player_used_card = false;
+        let mut player_did_any_action = false;
         let mut enemy_acted = false;
 
         while Instant::now() < round_end && self.player.is_alive() && self.enemy.is_alive() {
             let now = Instant::now();
             let elapsed = now.saturating_duration_since(last_tick);
             if elapsed > Duration::ZERO {
-                self.tick_card_cooldowns(elapsed);
+                self.tick_cooldowns(elapsed);
                 last_tick = now;
             }
 
-            if !player_acted {
-                while let Ok(line) = input_rx.try_recv() {
-                    if self.try_execute_player_action(&line) {
-                        player_acted = true;
-                        break;
+            while let Ok(line) = input_rx.try_recv() {
+                match self.try_execute_player_action(&line, player_used_card) {
+                    PlayerActionResult::None => {}
+                    PlayerActionResult::CardUsed => {
+                        player_used_card = true;
+                        player_did_any_action = true;
+                    }
+                    PlayerActionResult::SkillUsed => {
+                        player_did_any_action = true;
                     }
                 }
             }
@@ -133,10 +145,10 @@ impl GameEngine {
         let now = Instant::now();
         let elapsed = now.saturating_duration_since(last_tick);
         if elapsed > Duration::ZERO {
-            self.tick_card_cooldowns(elapsed);
+            self.tick_cooldowns(elapsed);
         }
 
-        if self.player.is_alive() && !player_acted {
+        if self.player.is_alive() && !player_did_any_action {
             println!("⌛ 你在本回合未行动。");
         }
         if self.enemy.is_alive() && !enemy_acted {
@@ -148,7 +160,6 @@ impl GameEngine {
     fn finish_round(&mut self) {
         self.player.clear_shield();
         self.enemy.clear_shield();
-        self.player.tick_skill_cooldowns();
         self.round += 1;
     }
 
@@ -168,7 +179,7 @@ impl GameEngine {
         Some(earliest + Duration::from_millis(random_delay_ms))
     }
 
-    fn tick_card_cooldowns(&mut self, elapsed: Duration) {
+    fn tick_cooldowns(&mut self, elapsed: Duration) {
         let elapsed_ms = elapsed.as_millis() as u64;
         if elapsed_ms == 0 {
             return;
@@ -177,6 +188,7 @@ impl GameEngine {
             card.tick_cooldown_ms(elapsed_ms);
         }
         self.enemy_card.tick_cooldown_ms(elapsed_ms);
+        self.player.tick_skill_cooldowns_ms(elapsed_ms);
     }
 
     fn print_welcome(&self) {
@@ -225,22 +237,26 @@ impl GameEngine {
         println!();
     }
 
-    fn try_execute_player_action(&mut self, line: &str) -> bool {
+    fn try_execute_player_action(&mut self, line: &str, player_used_card: bool) -> PlayerActionResult {
         let total_actions = self.player.hand.len() + self.player.skills.len();
         if total_actions == 0 {
-            return false;
+            return PlayerActionResult::None;
         }
 
         let choice = match line.trim().parse::<usize>() {
             Ok(n) if n >= 1 && n <= total_actions => n - 1,
             _ => {
                 println!("无效输入，请输入 1 到 {} 之间的数字。", total_actions);
-                return false;
+                return PlayerActionResult::None;
             }
         };
 
         let card_count = self.player.hand.len();
         if choice < card_count {
+            if player_used_card {
+                println!("\n⛔ 本回合已使用过卡牌，但仍可使用技能。");
+                return PlayerActionResult::None;
+            }
             let (card_name, effect) = {
                 let card = &mut self.player.hand[choice];
                 if !card.is_ready() {
@@ -249,7 +265,7 @@ impl GameEngine {
                         card.name,
                         card.remaining_cooldown_secs()
                     );
-                    return false;
+                    return PlayerActionResult::None;
                 }
                 card.trigger_cooldown();
                 (card.name.clone(), card.effect.clone())
@@ -264,16 +280,17 @@ impl GameEngine {
                 }
             }
             println!();
-            return true;
+            return PlayerActionResult::CardUsed;
         }
 
         let skill_idx = choice - card_count;
         if !self.player.skills[skill_idx].is_ready() {
             println!(
-                "\n⏳ 「{}」仍在冷却中（剩余 {} 回合）。",
-                self.player.skills[skill_idx].name, self.player.skills[skill_idx].current_cooldown
+                "\n⏳ 「{}」仍在冷却中（剩余 {} 秒）。",
+                self.player.skills[skill_idx].name,
+                self.player.skills[skill_idx].remaining_cooldown_secs()
             );
-            return false;
+            return PlayerActionResult::None;
         }
 
         let skill = self.player.skills[skill_idx].clone();
@@ -296,7 +313,7 @@ impl GameEngine {
         }
         self.player.skills[skill_idx].trigger_cooldown();
         println!();
-        true
+        PlayerActionResult::SkillUsed
     }
 
     fn execute_enemy_action(&mut self) {

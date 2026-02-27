@@ -36,7 +36,8 @@ export const ALL_SKILLS = [
         description: '恢复 1 点生命值',
         typeBadge: '治疗 1',
         typeClass: 'badge-heal',
-        cooldown: 4,
+        cooldownSeconds: 20,
+        initialDelaySeconds: 0,
         factory: createEmergencyHeal,
     },
     {
@@ -46,7 +47,8 @@ export const ALL_SKILLS = [
         description: '开局 5 秒后可用；使当前所有卡牌冷却减少 1 秒',
         typeBadge: '减 CD 1 秒',
         typeClass: 'badge-utility',
-        cooldown: 4,
+        cooldownSeconds: 20,
+        initialDelaySeconds: 5,
         factory: createFastCycle,
     },
 ];
