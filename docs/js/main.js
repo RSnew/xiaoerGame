@@ -1,5 +1,6 @@
 import { GameEngine } from './game/engine.js';
 import { MusicManager } from './audio/music.js';
+import { SfxManager } from './audio/sfx.js';
 import * as auth from './auth/auth.js';
 
 /* ========== DOM refs ========== */
@@ -22,15 +23,19 @@ const dom = {
 };
 
 const music  = new MusicManager();
+const sfx    = new SfxManager();
 let   engine = null;
 
 /* ========== Boot ========== */
 document.addEventListener('DOMContentLoaded', async () => {
     try { await auth.init(); } catch { /* CDN unavailable */ }
 
+    hydrateAudioSettings();
+
     engine = new GameEngine({
         onVictory: handleVictory,
         music,
+        sfx,
     });
 
     bindAuthUI();
@@ -48,18 +53,49 @@ document.addEventListener('DOMContentLoaded', async () => {
 /* ========== Music UI ========== */
 function bindMusicUI() {
     dom.btnMusic.addEventListener('click', () => {
-        const muted = music.toggleMute();
-        dom.btnMusic.textContent = muted ? '🔇' : '🎵';
-        dom.btnMusic.title = muted ? '取消静音' : '静音';
+        const targetMuted = !music.muted;
+        syncMuteTo(targetMuted);
+        dom.btnMusic.textContent = targetMuted ? '🔇' : '🎵';
+        dom.btnMusic.title = targetMuted ? '取消静音' : '静音';
+        persistAudioSettings();
     });
     dom.volumeSlider.addEventListener('input', (e) => {
-        music.setVolume(Number(e.target.value));
-        if (music.muted) {
-            music.toggleMute();
-            dom.btnMusic.textContent = '🎵';
-            dom.btnMusic.title = '静音';
-        }
+        const v = Number(e.target.value);
+        music.setVolume(v);
+        sfx.setVolume(v);
+        if (music.muted) syncMuteTo(false);
+        dom.btnMusic.textContent = '🎵';
+        dom.btnMusic.title = '静音';
+        persistAudioSettings();
     });
+}
+
+function syncMuteTo(muted) {
+    if (music.muted !== muted) music.toggleMute();
+    if (sfx.muted !== muted) sfx.toggleMute();
+}
+
+function hydrateAudioSettings() {
+    try {
+        const vRaw = localStorage.getItem('xiaoer.audio.volume');
+        const mRaw = localStorage.getItem('xiaoer.audio.muted');
+        const v = vRaw === null ? Number(dom.volumeSlider.value) : Number(vRaw);
+        const muted = mRaw === '1';
+
+        dom.volumeSlider.value = String(Math.max(0, Math.min(1, isFinite(v) ? v : 0.45)));
+        music.setVolume(Number(dom.volumeSlider.value));
+        sfx.setVolume(Number(dom.volumeSlider.value));
+        syncMuteTo(muted);
+        dom.btnMusic.textContent = muted ? '🔇' : '🎵';
+        dom.btnMusic.title = muted ? '取消静音' : '静音';
+    } catch { /* ok */ }
+}
+
+function persistAudioSettings() {
+    try {
+        localStorage.setItem('xiaoer.audio.volume', String(dom.volumeSlider.value));
+        localStorage.setItem('xiaoer.audio.muted', music.muted ? '1' : '0');
+    } catch { /* ok */ }
 }
 
 /* ========== Victory → Gold ========== */

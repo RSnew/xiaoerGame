@@ -22,10 +22,12 @@ export class GameEngine {
      * @param {Object} options
      * @param {function(): Promise<number|null>} [options.onVictory] - called on win, returns gold earned
      * @param {import('../audio/music.js').MusicManager} [options.music] - procedural music manager
+     * @param {import('../audio/sfx.js').SfxManager} [options.sfx] - procedural sound effects manager
      */
     constructor(options = {}) {
         this.onVictory = options.onVictory || (() => Promise.resolve(null));
         this.music = options.music || null;
+        this.sfx = options.sfx || null;
         this.cacheDom();
         this.bindRestart();
         this.initState();
@@ -244,10 +246,14 @@ export class GameEngine {
 
     /* ========== Turn flow ========== */
 
-    /** Start battle BGM on the first user gesture (browser audio policy). */
-    _ensureBGM() {
+    /** Start battle audio on the first user gesture (browser audio policy). */
+    _ensureAudio() {
         if (this.music && this.music.currentTrack !== 'battle') {
             this.music.playBattleBGM();
+        }
+        if (this.sfx) {
+            this.sfx.init();
+            this.sfx.resume();
         }
     }
 
@@ -356,7 +362,7 @@ export class GameEngine {
         const card = this.player.hand[index];
         if (!card || !card.isReady()) return;
 
-        this._ensureBGM();
+        this._ensureAudio();
         this.playerActedThisRound = true;
         this.busy = true;
         card.triggerCooldown();
@@ -385,7 +391,7 @@ export class GameEngine {
         const skill = this.player.skills[index];
         if (!skill.isReady()) return;
 
-        this._ensureBGM();
+        this._ensureAudio();
         this.playerActedThisRound = true;
         this.busy = true;
         this.renderCards();
@@ -398,6 +404,7 @@ export class GameEngine {
             const healed = this.player.heal(skill.effectValue);
             await this.animateHeal('player');
             if (healed > 0) {
+                if (this.sfx) this.sfx.playHeal();
                 this.log(`  ❤️ 恢复了 ${healed} 点生命值！`, 'player');
             } else {
                 this.log(`  ❤️ 生命值已满，未恢复。`, 'system');
@@ -454,6 +461,7 @@ export class GameEngine {
     /* ========== Actions ========== */
 
     async performAttack(attackerSide, target, targetSide, amount) {
+        if (this.sfx) this.sfx.playAttack(attackerSide);
         await this.animateAttack(attackerSide);
 
         const shieldBefore = target.shield;
@@ -466,9 +474,11 @@ export class GameEngine {
         }
 
         if (actual > 0) {
+            if (this.sfx) this.sfx.playHit(actual);
             await this.animateHit(targetSide, actual);
             this.log(`  对 ${target.name} 造成了 ${actual} 点伤害！`, attackerSide);
         } else {
+            if (this.sfx) this.sfx.playBlock();
             await this.animateShieldBlock(targetSide);
             this.log(`  攻击被完全抵挡！`, 'system');
         }
@@ -479,6 +489,7 @@ export class GameEngine {
 
     async performDefense(side, combatant, amount) {
         combatant.addShield(amount);
+        if (this.sfx) this.sfx.playDefense(side);
         await this.animateDefense(side);
         this.log(`  🛡️ 获得了 ${amount} 点护盾！`, side);
         this.updateShields();
