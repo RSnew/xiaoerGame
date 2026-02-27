@@ -83,11 +83,13 @@ export async function getProfile() {
 }
 
 /** Award battle gold (1–3, server-side random). Returns amount or null. */
-export async function addBattleReward() {
+export async function addBattleReward(bonus = 0) {
     if (!supabase) return null;
     const session = await getSession();
     if (!session) return null;
-    const { data, error } = await supabase.rpc('add_battle_reward');
+    const { data, error } = await supabase.rpc('add_battle_reward', {
+        bonus: Number(bonus) || 0,
+    });
     if (error) {
         console.warn('Battle reward failed:', error.message);
         return null;

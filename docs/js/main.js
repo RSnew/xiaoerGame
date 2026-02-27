@@ -99,8 +99,8 @@ function persistAudioSettings() {
 }
 
 /* ========== Victory → Gold ========== */
-async function handleVictory() {
-    const reward = await auth.addBattleReward();
+async function handleVictory(bonus = 0) {
+    const reward = await auth.addBattleReward(Number(bonus) || 0);
     if (reward) await refreshGold();
     return reward;
 }

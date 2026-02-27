@@ -5,10 +5,11 @@ export const MAX_SKILLS = 2;
 
 /** The player-controlled character. */
 export class Player extends Combatant {
-    constructor(name, maxHp, speed = 3) {
+    constructor(name, maxHp, speed = 3, passive = null) {
         super(name, maxHp, speed);
         this.hand = [];
         this.skills = [];
+        this.passive = passive;
     }
 
     /** Add a card to hand. Returns false if already at max capacity. */
@@ -30,5 +31,9 @@ export class Player extends Combatant {
         for (const skill of this.skills) {
             skill.tickCooldown();
         }
+    }
+
+    victoryBonusGold() {
+        return this.passive?.victoryBonusGold ? Number(this.passive.victoryBonusGold) : 0;
     }
 }

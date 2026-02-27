@@ -42,7 +42,8 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION handle_new_user();
 
 -- 5. 战斗奖励函数（服务端计算金币，防作弊）
-CREATE OR REPLACE FUNCTION add_battle_reward()
+-- bonus: 由人物被动等机制提供的额外金币（客户端传入，服务端一次性加总）
+CREATE OR REPLACE FUNCTION add_battle_reward(bonus INTEGER DEFAULT 0)
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -65,8 +66,8 @@ BEGIN
     RAISE EXCEPTION 'Too fast';
   END IF;
 
-  -- 随机奖励 1~3 金币
-  reward := floor(random() * 3 + 1)::INTEGER;
+  -- 随机奖励 1~3 金币（再叠加 bonus）
+  reward := floor(random() * 3 + 1)::INTEGER + GREATEST(COALESCE(bonus, 0), 0);
 
   UPDATE profiles
   SET gold = gold + reward, updated_at = now()
