@@ -204,7 +204,7 @@ impl GameEngine {
             self.enemy.name(),
             self.enemy.speed()
         );
-        println!("📌 新机制：每回合 5 秒，双方每回合最多行动一次。");
+        println!("📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。");
         println!("📌 卡牌冷却：每张牌 3 秒；开局玩家牌 1 秒冷却，敌方牌 2 秒冷却。");
         println!();
     }
@@ -237,7 +237,11 @@ impl GameEngine {
         println!();
     }
 
-    fn try_execute_player_action(&mut self, line: &str, player_used_card: bool) -> PlayerActionResult {
+    fn try_execute_player_action(
+        &mut self,
+        line: &str,
+        player_used_card: bool,
+    ) -> PlayerActionResult {
         let total_actions = self.player.hand.len() + self.player.skills.len();
         if total_actions == 0 {
             return PlayerActionResult::None;

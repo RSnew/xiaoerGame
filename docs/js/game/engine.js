@@ -36,7 +36,7 @@ export class GameEngine {
         this.renderSkills();
         this.syncUI();
         this.log('⚔️ 战斗开始！勇者 vs 史莱姆', 'system');
-        this.log('📌 新机制：每回合 5 秒，双方每回合最多行动一次。', 'system');
+        this.log('📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。', 'system');
         this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
         this.startRound();
     }
@@ -628,7 +628,7 @@ export class GameEngine {
         this.renderSkills();
         this.syncUI();
         this.log('⚔️ 新的战斗开始！', 'system');
-        this.log('📌 新机制：每回合 5 秒，双方每回合最多行动一次。', 'system');
+        this.log('📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。', 'system');
         this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
         this.startRound();
         if (this.music) this.music.playBattleBGM();
