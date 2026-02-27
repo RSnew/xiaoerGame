@@ -36,7 +36,7 @@ export class GameEngine {
         this.renderSkills();
         this.syncUI();
         this.log('⚔️ 战斗开始！勇者 vs 史莱姆', 'system');
-        this.log('📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。', 'system');
+        this.log('📌 新机制：每回合 5 秒；卡牌与技能每回合各最多使用一次，可同回合使用。', 'system');
         this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
         this.startRound();
     }
@@ -85,6 +85,7 @@ export class GameEngine {
         this.gameOver = false;
         this.roundFinishing = false;
         this.playerUsedCardThisRound = false;
+        this.playerUsedSkillThisRound = false;
         this.playerDidAnyActionThisRound = false;
         this.enemyActedThisRound = false;
         this.roundEndsAt = 0;
@@ -171,7 +172,7 @@ export class GameEngine {
     }
 
     canPlayerUseSkill() {
-        return !this.gameOver && !this.busy;
+        return !this.gameOver && !this.busy && !this.playerUsedSkillThisRound;
     }
 
     isCardDisabled(card) {
@@ -238,15 +239,23 @@ export class GameEngine {
             return;
         }
         const hasReadyCard = !this.playerUsedCardThisRound && this.player.hand.some(card => card.isReady());
-        const hasReadySkill = this.player.skills.some(skill => skill.isReady());
+        const hasReadySkill = !this.playerUsedSkillThisRound && this.player.skills.some(skill => skill.isReady());
         if (hasReadyCard && hasReadySkill) {
-            this.dom.handHint.textContent = '可出卡牌（本回合限 1 张）并可使用技能';
+            this.dom.handHint.textContent = '可出 1 张卡牌并可使用 1 次技能';
         } else if (hasReadyCard) {
-            this.dom.handHint.textContent = '本回合可出 1 张卡牌';
+            this.dom.handHint.textContent = this.playerUsedSkillThisRound
+                ? '本回合技能已用，还可出 1 张卡牌'
+                : '本回合可出 1 张卡牌';
         } else if (hasReadySkill) {
-            this.dom.handHint.textContent = '可使用技能（不受回合次数限制）';
+            this.dom.handHint.textContent = this.playerUsedCardThisRound
+                ? '本回合卡牌已出，还可使用 1 次技能'
+                : '本回合可使用 1 次技能';
+        } else if (this.playerUsedCardThisRound && this.playerUsedSkillThisRound) {
+            this.dom.handHint.textContent = '本回合卡牌与技能均已使用';
         } else if (this.playerUsedCardThisRound) {
             this.dom.handHint.textContent = '本回合卡牌已出，等待技能冷却…';
+        } else if (this.playerUsedSkillThisRound) {
+            this.dom.handHint.textContent = '本回合技能已用，等待卡牌冷却…';
         } else {
             this.dom.handHint.textContent = '等待冷却中…';
         }
@@ -278,6 +287,7 @@ export class GameEngine {
 
         this.stopRoundTimer();
         this.playerUsedCardThisRound = false;
+        this.playerUsedSkillThisRound = false;
         this.playerDidAnyActionThisRound = false;
         this.enemyActedThisRound = false;
         this.roundFinishing = false;
@@ -414,6 +424,7 @@ export class GameEngine {
         if (!skill.isReady()) return;
 
         this._ensureAudio();
+        this.playerUsedSkillThisRound = true;
         this.playerDidAnyActionThisRound = true;
         this.busy = true;
         this.renderCards();
@@ -639,7 +650,7 @@ export class GameEngine {
         this.renderSkills();
         this.syncUI();
         this.log('⚔️ 新的战斗开始！', 'system');
-        this.log('📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。', 'system');
+        this.log('📌 新机制：每回合 5 秒；卡牌与技能每回合各最多使用一次，可同回合使用。', 'system');
         this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
         this.startRound();
         if (this.music) this.music.playBattleBGM();
