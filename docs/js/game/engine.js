@@ -21,7 +21,7 @@ const ENEMY_ACTION_BUFFER_MS = 300;
 export class GameEngine {
     /**
      * @param {Object} options
-     * @param {function(): Promise<number|null>} [options.onVictory] - called on win, returns gold earned
+     * @param {function(number): Promise<number|null>} [options.onVictory] - called on win with bonus gold, returns gold earned
      * @param {import('../audio/music.js').MusicManager} [options.music] - procedural music manager
      * @param {import('../audio/sfx.js').SfxManager} [options.sfx] - procedural sound effects manager
      */
@@ -44,7 +44,12 @@ export class GameEngine {
     /* ========== Initialisation ========== */
 
     initState() {
-        this.player = new Player('勇者', 3);
+        this.player = new Player('勇者', 3, 3, {
+            id: 'prepared',
+            name: '预备',
+            description: '胜利后额外获得 1 金币',
+            victoryBonusGold: 1,
+        });
 
         const cardIds = getEquippedCards();
         if (cardIds.length > 0) {
@@ -607,9 +612,15 @@ export class GameEngine {
         this.dom.resultGold.classList.add('hidden');
         if (won) {
             try {
-                const reward = await this.onVictory();
+                const bonus = this.player.victoryBonusGold();
+                const reward = await this.onVictory(bonus);
                 if (reward) {
-                    this.dom.resultGold.textContent = `💰 获得了 ${reward} 金币！`;
+                    const passiveName = this.player.passive?.name;
+                    if (bonus > 0 && passiveName) {
+                        this.dom.resultGold.textContent = `💰 获得了 ${reward} 金币！（${passiveName} +${bonus}）`;
+                    } else {
+                        this.dom.resultGold.textContent = `💰 获得了 ${reward} 金币！`;
+                    }
                     this.dom.resultGold.classList.remove('hidden');
                 }
             } catch { /* auth not configured */ }

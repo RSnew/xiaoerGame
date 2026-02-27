@@ -38,6 +38,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         sfx,
     });
 
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        window.__xiaoerDebug = {
+            engine,
+            win: () => engine.showResult(true),
+            lose: () => engine.showResult(false),
+        };
+    }
+
     bindAuthUI();
     bindMusicUI();
 
@@ -99,10 +107,22 @@ function persistAudioSettings() {
 }
 
 /* ========== Victory → Gold ========== */
-async function handleVictory() {
-    const reward = await auth.addBattleReward();
-    if (reward) await refreshGold();
-    return reward;
+async function handleVictory(bonus = 0) {
+    const extra = Math.max(0, Number(bonus) || 0);
+
+    // Guest mode (or auth not configured): still show a local reward so the game loop is complete.
+    if (!auth.isConfigured()) {
+        return Math.floor(Math.random() * 3) + 1 + extra;
+    }
+
+    const reward = await auth.addBattleReward(extra);
+    if (reward) {
+        await refreshGold();
+        return reward;
+    }
+
+    // Auth configured but not logged in (or RPC failed): fall back to local reward display.
+    return Math.floor(Math.random() * 3) + 1 + extra;
 }
 
 /* ========== Auth UI ========== */

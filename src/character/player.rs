@@ -4,6 +4,26 @@ use crate::skill::Skill;
 
 pub const MAX_SKILLS: usize = 2;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PassiveSkill {
+    /// 预备：胜利后额外获得 1 金币
+    Prepared,
+}
+
+impl PassiveSkill {
+    pub fn name(&self) -> &'static str {
+        match self {
+            PassiveSkill::Prepared => "预备",
+        }
+    }
+
+    pub fn victory_bonus_gold(&self) -> i32 {
+        match self {
+            PassiveSkill::Prepared => 1,
+        }
+    }
+}
+
 /// The player-controlled character.
 pub struct Player {
     name: String,
@@ -11,6 +31,8 @@ pub struct Player {
     max_hp: i32,
     speed: i32,
     shield: i32,
+    gold: i32,
+    passive: Option<PassiveSkill>,
     pub hand: Vec<Card>,
     pub skills: Vec<Skill>,
 }
@@ -23,9 +45,34 @@ impl Player {
             max_hp,
             speed: 3,
             shield: 0,
+            gold: 0,
+            passive: None,
             hand: Vec::new(),
             skills: Vec::new(),
         }
+    }
+
+    pub fn set_passive(&mut self, passive: PassiveSkill) {
+        self.passive = Some(passive);
+    }
+
+    pub fn passive(&self) -> Option<&PassiveSkill> {
+        self.passive.as_ref()
+    }
+
+    pub fn gold(&self) -> i32 {
+        self.gold
+    }
+
+    pub fn add_gold(&mut self, amount: i32) {
+        self.gold = (self.gold + amount).max(0);
+    }
+
+    pub fn victory_bonus_gold(&self) -> i32 {
+        self.passive
+            .as_ref()
+            .map(PassiveSkill::victory_bonus_gold)
+            .unwrap_or(0)
     }
 
     pub fn add_card(&mut self, card: Card) {
@@ -95,6 +142,22 @@ mod tests {
         assert_eq!(p.hp(), 3);
         assert_eq!(p.max_hp(), 3);
         assert!(p.is_alive());
+    }
+
+    #[test]
+    fn new_player_defaults() {
+        let p = Player::new("勇者", 3);
+        assert_eq!(p.gold(), 0);
+        assert!(p.passive().is_none());
+        assert_eq!(p.victory_bonus_gold(), 0);
+    }
+
+    #[test]
+    fn passive_skill_bonus_gold() {
+        let mut p = Player::new("勇者", 3);
+        p.set_passive(PassiveSkill::Prepared);
+        assert_eq!(p.passive().unwrap().name(), "预备");
+        assert_eq!(p.victory_bonus_gold(), 1);
     }
 
     #[test]

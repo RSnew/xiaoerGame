@@ -8,6 +8,7 @@ use rand::Rng;
 use crate::card::attack::create_attack_card;
 use crate::card::defense::create_defense_card;
 use crate::card::{Card, CardEffect};
+use crate::character::player::PassiveSkill;
 use crate::character::Player;
 use crate::enemy::Slime;
 use crate::mechanics::combat::Combatant;
@@ -38,6 +39,7 @@ enum PlayerActionResult {
 impl GameEngine {
     pub fn new() -> Self {
         let mut player = Player::new("勇者", 3);
+        player.set_passive(PassiveSkill::Prepared);
         player.add_card(create_attack_card());
         player.add_card(create_defense_card());
         player.equip_skill(create_emergency_heal());
@@ -370,7 +372,7 @@ impl GameEngine {
         }
     }
 
-    fn print_result(&self) {
+    fn print_result(&mut self) {
         println!("╔══════════════════════════════════╗");
         if self.player.is_alive() {
             println!("║          你胜利了！              ║");
@@ -378,6 +380,24 @@ impl GameEngine {
             println!("║          你被击败了…             ║");
         }
         println!("╚══════════════════════════════════╝");
+
+        if self.player.is_alive() {
+            let base_reward = rand::thread_rng().gen_range(1..=3);
+            let bonus = self.player.victory_bonus_gold();
+            let total = base_reward + bonus;
+            self.player.add_gold(total);
+
+            if bonus > 0 {
+                let passive_name = self.player.passive().map(|p| p.name()).unwrap_or("被动");
+                println!(
+                    "\n💰 获得了 {} 金币！（基础 {} + {} +{}）",
+                    total, base_reward, passive_name, bonus
+                );
+            } else {
+                println!("\n💰 获得了 {} 金币！", total);
+            }
+            println!("🪙 当前金币：{}", self.player.gold());
+        }
         println!("\n最终状态：");
         println!("  {}", self.player.display_status());
         println!("  {}", self.enemy.display_status());
