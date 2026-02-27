@@ -5,6 +5,7 @@ import { createDefenseCard } from '../card/defense.js';
 import { CardEffect } from '../card/card.js';
 import { SkillEffect } from '../skill/skill.js';
 import { createEmergencyHeal } from '../skill/emergency_heal.js';
+import { createFastCycle } from '../skill/fast_cycle.js';
 import { getEquippedCards, getEquippedSkills } from '../hub/state.js';
 import { getCardById, getSkillById } from '../hub/registry.js';
 
@@ -64,6 +65,7 @@ export class GameEngine {
             }
         } else {
             this.player.equipSkill(createEmergencyHeal());
+            this.player.equipSkill(createFastCycle());
         }
         for (const card of this.player.hand) {
             card.setInitialCooldown(PLAYER_INITIAL_CARD_COOLDOWN_MS);
@@ -410,6 +412,12 @@ export class GameEngine {
                 this.log(`  ❤️ 生命值已满，未恢复。`, 'system');
             }
             this.updateHpBars();
+        } else if (skill.effectType === SkillEffect.REDUCE_ALL_CARD_COOLDOWN) {
+            const reduceMs = Math.max(0, Number(skill.effectValue)) * 1000;
+            for (const card of this.player.hand) {
+                card.reduceCooldown(reduceMs);
+            }
+            this.log('  🌀 当前所有卡牌冷却减少了 1 秒！', 'player');
         }
 
         skill.triggerCooldown();

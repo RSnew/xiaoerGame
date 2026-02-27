@@ -12,6 +12,7 @@ const REGISTRY = {
     ],
     skills: [
         { id: 'emergency_heal', path: 'data/skills/emergency_heal' },
+        { id: 'fast_cycle', path: 'data/skills/fast_cycle' },
     ],
 };
 

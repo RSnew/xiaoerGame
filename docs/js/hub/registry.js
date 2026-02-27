@@ -1,6 +1,7 @@
 import { createAttackCard } from '../card/attack.js';
 import { createDefenseCard } from '../card/defense.js';
 import { createEmergencyHeal } from '../skill/emergency_heal.js';
+import { createFastCycle } from '../skill/fast_cycle.js';
 
 export const MAX_EQUIPPED_CARDS = 4;
 export const MAX_EQUIPPED_SKILLS = 2;
@@ -37,6 +38,16 @@ export const ALL_SKILLS = [
         typeClass: 'badge-heal',
         cooldown: 4,
         factory: createEmergencyHeal,
+    },
+    {
+        id: 'fast_cycle',
+        name: '快速循环',
+        icon: '🌀',
+        description: '开局 5 秒后可用；使当前所有卡牌冷却减少 1 秒',
+        typeBadge: '减 CD 1 秒',
+        typeClass: 'badge-utility',
+        cooldown: 4,
+        factory: createFastCycle,
     },
 ];
 

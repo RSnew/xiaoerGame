@@ -1,6 +1,7 @@
 /** Skill effect types. */
 export const SkillEffect = Object.freeze({
     HEAL: 'heal',
+    REDUCE_ALL_CARD_COOLDOWN: 'reduce_all_card_cooldown',
 });
 
 /** An equippable skill with a cooldown. */

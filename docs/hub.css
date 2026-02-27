@@ -271,6 +271,12 @@
     background: rgba(64, 216, 128, 0.08);
 }
 
+.badge-utility {
+    color: #c08cff;
+    border: 1px solid rgba(192, 140, 255, 0.35);
+    background: rgba(192, 140, 255, 0.08);
+}
+
 /* Skill cards in hub */
 .hub-card.hub-skill-card {
     border-color: rgba(64, 216, 128, 0.5);
