@@ -403,3 +403,69 @@ impl GameEngine {
         println!("  {}", self.enemy.display_status());
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn prepare_ready_actions(engine: &mut GameEngine) {
+        for card in &mut engine.player.hand {
+            card.set_initial_cooldown_ms(0);
+        }
+        for skill in &mut engine.player.skills {
+            skill.remaining_cooldown_ms = 0;
+        }
+    }
+
+    #[test]
+    fn card_then_skills_are_allowed_but_not_second_card() {
+        let mut engine = GameEngine::new();
+        prepare_ready_actions(&mut engine);
+
+        let first_skill_choice = (engine.player.hand.len() + 1).to_string();
+        let second_skill_choice = (engine.player.hand.len() + 2).to_string();
+
+        assert_eq!(
+            engine.try_execute_player_action("1", false),
+            PlayerActionResult::CardUsed
+        );
+        assert_eq!(
+            engine.try_execute_player_action("1", true),
+            PlayerActionResult::None
+        );
+        assert_eq!(
+            engine.try_execute_player_action(&first_skill_choice, true),
+            PlayerActionResult::SkillUsed
+        );
+        assert_eq!(
+            engine.try_execute_player_action(&second_skill_choice, true),
+            PlayerActionResult::SkillUsed
+        );
+    }
+
+    #[test]
+    fn skills_then_card_is_allowed_but_not_second_card() {
+        let mut engine = GameEngine::new();
+        prepare_ready_actions(&mut engine);
+
+        let first_skill_choice = (engine.player.hand.len() + 1).to_string();
+        let second_skill_choice = (engine.player.hand.len() + 2).to_string();
+
+        assert_eq!(
+            engine.try_execute_player_action(&first_skill_choice, false),
+            PlayerActionResult::SkillUsed
+        );
+        assert_eq!(
+            engine.try_execute_player_action(&second_skill_choice, false),
+            PlayerActionResult::SkillUsed
+        );
+        assert_eq!(
+            engine.try_execute_player_action("1", false),
+            PlayerActionResult::CardUsed
+        );
+        assert_eq!(
+            engine.try_execute_player_action("2", true),
+            PlayerActionResult::None
+        );
+    }
+}
