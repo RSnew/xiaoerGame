@@ -6,6 +6,8 @@ import { CardEffect } from '../card/card.js';
 import { SkillEffect } from '../skill/skill.js';
 import { createEmergencyHeal } from '../skill/emergency_heal.js';
 import { TurnPhase, phaseLabel } from '../mechanics/turn.js';
+import { getEquippedCards, getEquippedSkills } from '../hub/state.js';
+import { getCardById, getSkillById } from '../hub/registry.js';
 
 /**
  * Drives the game: manages state, UI updates, animations, and turn flow.
@@ -30,9 +32,28 @@ export class GameEngine {
 
     initState() {
         this.player = new Player('勇者', 3);
-        this.player.addCard(createAttackCard());
-        this.player.addCard(createDefenseCard());
-        this.player.equipSkill(createEmergencyHeal());
+
+        const cardIds = getEquippedCards();
+        if (cardIds.length > 0) {
+            for (const id of cardIds) {
+                const meta = getCardById(id);
+                if (meta) this.player.addCard(meta.factory());
+            }
+        } else {
+            this.player.addCard(createAttackCard());
+            this.player.addCard(createDefenseCard());
+        }
+
+        const skillIds = getEquippedSkills();
+        if (skillIds.length > 0) {
+            for (const id of skillIds) {
+                const meta = getSkillById(id);
+                if (meta) this.player.equipSkill(meta.factory());
+            }
+        } else {
+            this.player.equipSkill(createEmergencyHeal());
+        }
+
         this.enemy = new Slime('史莱姆', 3);
         this.phase = TurnPhase.PLAYER;
         this.round = 1;
