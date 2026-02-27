@@ -38,6 +38,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         sfx,
     });
 
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        window.__xiaoerDebug = {
+            engine,
+            win: () => engine.showResult(true),
+            lose: () => engine.showResult(false),
+        };
+    }
+
     bindAuthUI();
     bindMusicUI();
 
