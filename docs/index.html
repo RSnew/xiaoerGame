@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小二的回合制卡牌游戏</title>
+    <title>小二的回合制卡牌游戏 - 大厅</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="hub.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -20,74 +21,79 @@
             <span id="user-name"></span>
             <button id="btn-logout" class="auth-btn auth-btn-sm">退出</button>
         </div>
-        <a class="nav-link" href="hub.html">🏠 大厅</a>
-        <div id="music-controls">
-            <button id="btn-music" class="auth-btn auth-btn-sm" title="静音">🎵</button>
-            <input  id="volume-slider" type="range" min="0" max="1" step="0.05" value="0.45" />
-        </div>
         <a id="codex-link" href="codex.html">📖 图鉴</a>
     </div>
 
-    <!-- Header / Turn Banner -->
-    <header id="turn-banner">
-        <span id="round-text">第 1 回合</span>
-        <span class="dot">·</span>
-        <span id="phase-text" class="phase-player">剩余 5.0 秒</span>
+    <!-- Hub Header -->
+    <header id="hub-header">
+        <div class="hub-hero-frame">
+            <span class="fighter-emoji">🗡️</span>
+        </div>
+        <div class="hub-hero-info">
+            <h1 class="hub-hero-name">勇者</h1>
+            <p class="hub-hero-title">初心冒险者</p>
+        </div>
+        <div class="hub-gold-large">
+            <span class="gold-icon">🪙</span>
+            <span id="hub-gold-value">0</span>
+        </div>
     </header>
 
-    <!-- Battlefield -->
-    <section id="battlefield">
-        <!-- Player -->
-        <div class="fighter-panel" id="player-panel">
-            <div class="shield-badge hidden" id="player-shield-badge">🛡️ <span id="player-shield-val">0</span></div>
-            <div class="fighter-frame player-frame" id="player-frame">
-                <span class="fighter-emoji">🗡️</span>
-            </div>
-            <div class="fighter-name">勇者</div>
-            <div class="hp-track">
-                <div class="hp-fill hp-high" id="player-hp-bar" style="width:100%"></div>
-            </div>
-            <div class="hp-num" id="player-hp-num">3 / 3</div>
-        </div>
+    <!-- Navigation Tabs -->
+    <nav id="hub-nav">
+        <button class="hub-tab active" data-panel="cards">🃏 卡牌</button>
+        <button class="hub-tab" data-panel="skills">🔮 技能</button>
+        <button class="hub-tab" data-panel="shop">🏪 商店</button>
+    </nav>
 
-        <!-- Center -->
-        <div id="center">
-            <div id="vs">VS</div>
+    <!-- Cards Panel -->
+    <section id="panel-cards" class="hub-panel">
+        <div class="panel-header">
+            <h2>装备卡牌</h2>
+            <span class="slot-counter" id="card-counter">0 / 4</span>
         </div>
-
-        <!-- Enemy -->
-        <div class="fighter-panel" id="enemy-panel">
-            <div class="shield-badge hidden" id="enemy-shield-badge">🛡️ <span id="enemy-shield-val">0</span></div>
-            <div class="fighter-frame enemy-frame" id="enemy-frame">
-                <span class="fighter-emoji">👾</span>
-            </div>
-            <div class="fighter-name">史莱姆</div>
-            <div class="hp-track">
-                <div class="hp-fill hp-high" id="enemy-hp-bar" style="width:100%"></div>
-            </div>
-            <div class="hp-num" id="enemy-hp-num">3 / 3</div>
+        <div class="equipped-zone" id="equipped-cards">
+            <!-- Populated by JS -->
+        </div>
+        <div class="divider">
+            <span>可用卡牌</span>
+        </div>
+        <div class="available-zone" id="available-cards">
+            <!-- Populated by JS -->
         </div>
     </section>
 
-    <!-- Battle Log -->
-    <section id="log-section">
-        <div id="log-title">📜 战斗日志</div>
-        <div id="log-body"></div>
+    <!-- Skills Panel -->
+    <section id="panel-skills" class="hub-panel hidden">
+        <div class="panel-header">
+            <h2>装备技能</h2>
+            <span class="slot-counter" id="skill-counter">0 / 2</span>
+        </div>
+        <div class="equipped-zone" id="equipped-skills">
+            <!-- Populated by JS -->
+        </div>
+        <div class="divider">
+            <span>可用技能</span>
+        </div>
+        <div class="available-zone" id="available-skills">
+            <!-- Populated by JS -->
+        </div>
     </section>
 
-    <!-- Hand -->
-    <section id="hand-section">
-        <div id="hand-title">🃏 你的手牌</div>
-        <div id="hand-cards"></div>
+    <!-- Shop Panel (TODO) -->
+    <section id="panel-shop" class="hub-panel hidden">
+        <div class="shop-placeholder">
+            <div class="shop-icon">🏪</div>
+            <h2>商店</h2>
+            <p>商店正在建设中，敬请期待！</p>
+            <p class="shop-hint">未来将支持使用金币购买新卡牌和技能</p>
+        </div>
     </section>
 
-    <!-- Skills -->
-    <section id="skill-section">
-        <div id="skill-title">🔮 技能</div>
-        <div id="skill-cards"></div>
-    </section>
-
-    <div id="hand-hint">点击卡牌或技能使用</div>
+    <!-- Start Battle Button -->
+    <div id="battle-action">
+        <a href="battle.html" id="btn-battle" class="battle-btn">⚔️ 开始战斗</a>
+    </div>
 </div>
 
 <!-- Game-over overlay -->
@@ -127,6 +133,9 @@
     </div>
 </div>
 
-<script type="module" src="js/main.js"></script>
+<!-- Toast container -->
+<div id="toast-container" style="position:fixed;bottom:40px;left:50%;transform:translateX(-50%);padding:12px 28px;background:#1e1e3a;border:2px solid #f0c850;border-radius:12px;color:#f0c850;font-size:0.95rem;font-weight:700;box-shadow:0 0 24px rgba(240,200,80,0.3),0 6px 24px rgba(0,0,0,0.5);z-index:9999;pointer-events:none;display:none;white-space:nowrap;"></div>
+
+<script type="module" src="js/hub/hub.js"></script>
 </body>
 </html>
