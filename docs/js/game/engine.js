@@ -5,6 +5,7 @@ import { createDefenseCard } from '../card/defense.js';
 import { CardEffect } from '../card/card.js';
 import { SkillEffect } from '../skill/skill.js';
 import { createEmergencyHeal } from '../skill/emergency_heal.js';
+import { createFastCycle } from '../skill/fast_cycle.js';
 import { getEquippedCards, getEquippedSkills } from '../hub/state.js';
 import { getCardById, getSkillById } from '../hub/registry.js';
 
@@ -35,7 +36,7 @@ export class GameEngine {
         this.renderSkills();
         this.syncUI();
         this.log('⚔️ 战斗开始！勇者 vs 史莱姆', 'system');
-        this.log('📌 新机制：每回合 5 秒，双方每回合最多行动一次。', 'system');
+        this.log('📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。', 'system');
         this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
         this.startRound();
     }
@@ -64,6 +65,7 @@ export class GameEngine {
             }
         } else {
             this.player.equipSkill(createEmergencyHeal());
+            this.player.equipSkill(createFastCycle());
         }
         for (const card of this.player.hand) {
             card.setInitialCooldown(PLAYER_INITIAL_CARD_COOLDOWN_MS);
@@ -77,7 +79,8 @@ export class GameEngine {
         this.busy = false;
         this.gameOver = false;
         this.roundFinishing = false;
-        this.playerActedThisRound = false;
+        this.playerUsedCardThisRound = false;
+        this.playerDidAnyActionThisRound = false;
         this.enemyActedThisRound = false;
         this.roundEndsAt = 0;
         this.lastTickAt = 0;
@@ -151,23 +154,27 @@ export class GameEngine {
                 <div class="card-icon">${skill.icon}</div>
                 <div class="card-name">${skill.name}</div>
                 <div class="card-desc">${skill.description}</div>
-                <div class="card-value">${skill.isReady() ? '可用' : `冷却 ${skill.currentCooldown} 回合`}</div>
+                <div class="card-value">${skill.isReady() ? '可用' : `冷却 ${skill.remainingCooldownSeconds()} 秒`}</div>
             `;
             el.addEventListener('click', () => this.onSkillClick(i));
             this.dom.skillCards.appendChild(el);
         });
     }
 
-    canPlayerAct() {
-        return !this.gameOver && !this.busy && !this.playerActedThisRound;
+    canPlayerUseCard() {
+        return !this.gameOver && !this.busy && !this.playerUsedCardThisRound;
+    }
+
+    canPlayerUseSkill() {
+        return !this.gameOver && !this.busy;
     }
 
     isCardDisabled(card) {
-        return !this.canPlayerAct() || !card.isReady();
+        return !this.canPlayerUseCard() || !card.isReady();
     }
 
     isSkillDisabled(skill) {
-        return !this.canPlayerAct() || !skill.isReady();
+        return !this.canPlayerUseSkill() || !skill.isReady();
     }
 
     syncUI() {
@@ -225,15 +232,19 @@ export class GameEngine {
             this.dom.handHint.textContent = '动作结算中…';
             return;
         }
-        if (this.playerActedThisRound) {
-            this.dom.handHint.textContent = '本回合已行动，等待下一回合…';
-            return;
-        }
-        const hasReadyCard = this.player.hand.some(card => card.isReady());
+        const hasReadyCard = !this.playerUsedCardThisRound && this.player.hand.some(card => card.isReady());
         const hasReadySkill = this.player.skills.some(skill => skill.isReady());
-        this.dom.handHint.textContent = hasReadyCard || hasReadySkill
-            ? '本回合可行动一次：点击卡牌或技能'
-            : '等待冷却中…';
+        if (hasReadyCard && hasReadySkill) {
+            this.dom.handHint.textContent = '可出卡牌（本回合限 1 张）并可使用技能';
+        } else if (hasReadyCard) {
+            this.dom.handHint.textContent = '本回合可出 1 张卡牌';
+        } else if (hasReadySkill) {
+            this.dom.handHint.textContent = '可使用技能（不受回合次数限制）';
+        } else if (this.playerUsedCardThisRound) {
+            this.dom.handHint.textContent = '本回合卡牌已出，等待技能冷却…';
+        } else {
+            this.dom.handHint.textContent = '等待冷却中…';
+        }
     }
 
     log(msg, type = '') {
@@ -261,7 +272,8 @@ export class GameEngine {
         if (this.gameOver) return;
 
         this.stopRoundTimer();
-        this.playerActedThisRound = false;
+        this.playerUsedCardThisRound = false;
+        this.playerDidAnyActionThisRound = false;
         this.enemyActedThisRound = false;
         this.roundFinishing = false;
 
@@ -303,6 +315,7 @@ export class GameEngine {
         const deltaMs = Math.max(0, now - this.lastTickAt);
         this.lastTickAt = now;
         this.tickCardCooldowns(deltaMs);
+        this.tickSkillCooldowns(deltaMs);
 
         if (
             !this.enemyActedThisRound &&
@@ -332,12 +345,16 @@ export class GameEngine {
         this.enemyCard.tickCooldown(deltaMs);
     }
 
+    tickSkillCooldowns(deltaMs) {
+        this.player.tickSkillCooldowns(deltaMs);
+    }
+
     async finishRound() {
         if (this.roundFinishing || this.gameOver) return;
         this.roundFinishing = true;
         this.stopRoundTimer();
 
-        if (!this.playerActedThisRound) {
+        if (!this.playerDidAnyActionThisRound) {
             this.log('⌛ 你本回合未行动。', 'system');
         }
         if (!this.enemyActedThisRound) {
@@ -346,7 +363,6 @@ export class GameEngine {
 
         this.player.clearShield();
         this.enemy.clearShield();
-        this.player.tickSkillCooldowns();
         this.round++;
 
         this.syncUI();
@@ -358,12 +374,13 @@ export class GameEngine {
     }
 
     async onCardClick(index) {
-        if (!this.canPlayerAct()) return;
+        if (!this.canPlayerUseCard()) return;
         const card = this.player.hand[index];
         if (!card || !card.isReady()) return;
 
         this._ensureAudio();
-        this.playerActedThisRound = true;
+        this.playerUsedCardThisRound = true;
+        this.playerDidAnyActionThisRound = true;
         this.busy = true;
         card.triggerCooldown();
         this.renderCards();
@@ -387,12 +404,12 @@ export class GameEngine {
     }
 
     async onSkillClick(index) {
-        if (!this.canPlayerAct()) return;
+        if (!this.canPlayerUseSkill()) return;
         const skill = this.player.skills[index];
         if (!skill.isReady()) return;
 
         this._ensureAudio();
-        this.playerActedThisRound = true;
+        this.playerDidAnyActionThisRound = true;
         this.busy = true;
         this.renderCards();
         this.renderSkills();
@@ -410,6 +427,12 @@ export class GameEngine {
                 this.log(`  ❤️ 生命值已满，未恢复。`, 'system');
             }
             this.updateHpBars();
+        } else if (skill.effectType === SkillEffect.REDUCE_ALL_CARD_COOLDOWN) {
+            const reduceMs = Math.max(0, Number(skill.effectValue)) * 1000;
+            for (const card of this.player.hand) {
+                card.reduceCooldown(reduceMs);
+            }
+            this.log('  🌀 当前所有卡牌冷却减少了 1 秒！', 'player');
         }
 
         skill.triggerCooldown();
@@ -605,7 +628,7 @@ export class GameEngine {
         this.renderSkills();
         this.syncUI();
         this.log('⚔️ 新的战斗开始！', 'system');
-        this.log('📌 新机制：每回合 5 秒，双方每回合最多行动一次。', 'system');
+        this.log('📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。', 'system');
         this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
         this.startRound();
         if (this.music) this.music.playBattleBGM();

@@ -48,6 +48,10 @@ impl Card {
         self.remaining_cooldown_ms = self.remaining_cooldown_ms.saturating_sub(elapsed_ms);
     }
 
+    pub fn reduce_cooldown_ms(&mut self, amount_ms: u64) {
+        self.remaining_cooldown_ms = self.remaining_cooldown_ms.saturating_sub(amount_ms);
+    }
+
     pub fn remaining_cooldown_ms(&self) -> u64 {
         self.remaining_cooldown_ms
     }
@@ -90,5 +94,13 @@ mod tests {
         c.tick_cooldown_ms(1_500);
         assert!(c.is_ready());
         assert_eq!(c.remaining_cooldown_ms(), 0);
+    }
+
+    #[test]
+    fn reduce_cooldown_saturates() {
+        let mut c = Card::new("攻击", "造成 1 点伤害", CardEffect::Damage(1), 3_000);
+        c.set_initial_cooldown_ms(500);
+        c.reduce_cooldown_ms(1_000);
+        assert!(c.is_ready());
     }
 }

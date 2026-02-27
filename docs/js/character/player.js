@@ -26,9 +26,9 @@ export class Player extends Combatant {
     }
 
     /** Tick all skill cooldowns by one turn. */
-    tickSkillCooldowns() {
+    tickSkillCooldowns(deltaMs) {
         for (const skill of this.skills) {
-            skill.tickCooldown();
+            skill.tickCooldown(deltaMs);
         }
     }
 }

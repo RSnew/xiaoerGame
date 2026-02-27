@@ -208,12 +208,15 @@ function renderSkills() {
 function createSkillElement(meta, isEquipped, index) {
     const el = document.createElement('div');
     el.className = 'hub-card hub-skill-card';
+    const delayText = meta.initialDelaySeconds && meta.initialDelaySeconds > 0
+        ? `；开局 ${meta.initialDelaySeconds} 秒后可用`
+        : '';
     el.innerHTML = `
         <div class="card-icon">${meta.icon}</div>
         <div class="card-name">${meta.name}</div>
         <div class="card-desc">${meta.description}</div>
         <div class="card-badge ${meta.typeClass}">${meta.typeBadge}</div>
-        <div class="cooldown-info">冷却：${meta.cooldown} 回合</div>
+        <div class="cooldown-info">冷却：${meta.cooldownSeconds} 秒${delayText}</div>
     `;
 
     if (isEquipped) {
@@ -240,12 +243,15 @@ function createSkillElement(meta, isEquipped, index) {
 function createAvailableSkill(meta) {
     const el = document.createElement('div');
     el.className = 'hub-card hub-skill-card';
+    const delayText = meta.initialDelaySeconds && meta.initialDelaySeconds > 0
+        ? `；开局 ${meta.initialDelaySeconds} 秒后可用`
+        : '';
     el.innerHTML = `
         <div class="card-icon">${meta.icon}</div>
         <div class="card-name">${meta.name}</div>
         <div class="card-desc">${meta.description}</div>
         <div class="card-badge ${meta.typeClass}">${meta.typeBadge}</div>
-        <div class="cooldown-info">冷却：${meta.cooldown} 回合</div>
+        <div class="cooldown-info">冷却：${meta.cooldownSeconds} 秒${delayText}</div>
     `;
 
     el.addEventListener('click', () => {

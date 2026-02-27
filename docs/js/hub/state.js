@@ -3,7 +3,7 @@ const STORAGE_KEY = 'xiaoer_hub_state';
 const DEFAULT_STATE = {
     gold: 0,
     equippedCards: ['attack', 'defense'],
-    equippedSkills: ['emergency_heal'],
+    equippedSkills: ['emergency_heal', 'fast_cycle'],
 };
 
 export function loadState() {

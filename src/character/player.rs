@@ -41,10 +41,10 @@ impl Player {
         true
     }
 
-    /// Tick all skill cooldowns by one turn.
-    pub fn tick_skill_cooldowns(&mut self) {
+    /// Tick all skill cooldowns by elapsed milliseconds.
+    pub fn tick_skill_cooldowns_ms(&mut self, elapsed_ms: u64) {
         for skill in &mut self.skills {
-            skill.tick_cooldown();
+            skill.tick_cooldown_ms(elapsed_ms);
         }
     }
 }
@@ -131,14 +131,12 @@ mod tests {
     }
 
     #[test]
-    fn tick_skill_cooldowns() {
+    fn tick_skill_cooldowns_ms() {
         let mut p = Player::new("勇者", 3);
         p.equip_skill(create_emergency_heal());
         p.skills[0].trigger_cooldown();
         assert!(!p.skills[0].is_ready());
-        for _ in 0..4 {
-            p.tick_skill_cooldowns();
-        }
+        p.tick_skill_cooldowns_ms(20_000);
         assert!(p.skills[0].is_ready());
     }
 }

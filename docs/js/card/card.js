@@ -33,6 +33,10 @@ export class Card {
         this.remainingCooldownMs = Math.max(0, this.remainingCooldownMs - Math.max(0, deltaMs));
     }
 
+    reduceCooldown(ms) {
+        this.remainingCooldownMs = Math.max(0, this.remainingCooldownMs - Math.max(0, ms));
+    }
+
     remainingCooldownSeconds() {
         if (this.remainingCooldownMs === 0) return 0;
         return Math.ceil(this.remainingCooldownMs / 1000);
