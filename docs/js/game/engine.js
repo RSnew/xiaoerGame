@@ -16,9 +16,11 @@ export class GameEngine {
     /**
      * @param {Object} options
      * @param {function(): Promise<number|null>} [options.onVictory] - called on win, returns gold earned
+     * @param {import('../audio/music.js').MusicManager} [options.music] - procedural music manager
      */
     constructor(options = {}) {
         this.onVictory = options.onVictory || (() => Promise.resolve(null));
+        this.music = options.music || null;
         this.cacheDom();
         this.bindRestart();
         this.initState();
@@ -206,6 +208,13 @@ export class GameEngine {
 
     /* ========== Turn flow ========== */
 
+    /** Start battle BGM on the first user gesture (browser audio policy). */
+    _ensureBGM() {
+        if (this.music && this.music.currentTrack !== 'battle') {
+            this.music.playBattleBGM();
+        }
+    }
+
     async startEnemyFirstTurn() {
         this.busy = true;
         this.setCardsEnabled(false);
@@ -233,6 +242,7 @@ export class GameEngine {
 
     async onCardClick(index) {
         if (this.busy || this.gameOver || this.phase !== TurnPhase.PLAYER) return;
+        this._ensureBGM();
         this.busy = true;
         this.setCardsEnabled(false);
 
@@ -253,6 +263,7 @@ export class GameEngine {
         const skill = this.player.skills[index];
         if (!skill.isReady()) return;
 
+        this._ensureBGM();
         this.busy = true;
         this.setCardsEnabled(false);
 
@@ -414,6 +425,12 @@ export class GameEngine {
 
     async showResult(won) {
         this.gameOver = true;
+
+        if (this.music) {
+            if (won) this.music.playVictoryMusic();
+            else     this.music.playDefeatMusic();
+        }
+
         this.dom.resultIcon.textContent  = won ? '🎉' : '💀';
         this.dom.resultTitle.textContent = won ? '你胜利了！' : '你被击败了…';
         this.dom.resultDetail.textContent = won
@@ -449,6 +466,7 @@ export class GameEngine {
         if (this.phase === TurnPhase.ENEMY) {
             this.startEnemyFirstTurn();
         }
+        if (this.music) this.music.playBattleBGM();
     }
 
     /* ========== Utility ========== */

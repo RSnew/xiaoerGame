@@ -98,6 +98,49 @@ body {
     box-shadow: 0 0 12px rgba(80, 160, 255, 0.15);
 }
 
+/* ===== Music Controls ===== */
+#music-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 70px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    opacity: 0.75;
+    transition: opacity 0.2s;
+}
+
+#volume-slider:hover { opacity: 1; }
+
+#volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 6px rgba(240, 200, 80, 0.4);
+}
+
+#volume-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 6px rgba(240, 200, 80, 0.4);
+}
+
 #codex-link {
     margin-left: auto;
     padding: 6px 14px;

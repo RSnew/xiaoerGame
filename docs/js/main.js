@@ -1,4 +1,5 @@
 import { GameEngine } from './game/engine.js';
+import { MusicManager } from './audio/music.js';
 import * as auth from './auth/auth.js';
 
 /* ========== DOM refs ========== */
@@ -16,9 +17,12 @@ const dom = {
     registerForm:document.getElementById('register-form'),
     loginError:  document.getElementById('login-error'),
     regError:    document.getElementById('reg-error'),
+    btnMusic:    document.getElementById('btn-music'),
+    volumeSlider:document.getElementById('volume-slider'),
 };
 
-let engine = null;
+const music  = new MusicManager();
+let   engine = null;
 
 /* ========== Boot ========== */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -26,9 +30,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     engine = new GameEngine({
         onVictory: handleVictory,
+        music,
     });
 
     bindAuthUI();
+    bindMusicUI();
 
     if (auth.isConfigured()) {
         auth.onAuthStateChange(handleAuthChange);
@@ -38,6 +44,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         dom.userBar.classList.add('hidden');
     }
 });
+
+/* ========== Music UI ========== */
+function bindMusicUI() {
+    dom.btnMusic.addEventListener('click', () => {
+        const muted = music.toggleMute();
+        dom.btnMusic.textContent = muted ? '🔇' : '🎵';
+        dom.btnMusic.title = muted ? '取消静音' : '静音';
+    });
+    dom.volumeSlider.addEventListener('input', (e) => {
+        music.setVolume(Number(e.target.value));
+        if (music.muted) {
+            music.toggleMute();
+            dom.btnMusic.textContent = '🎵';
+            dom.btnMusic.title = '静音';
+        }
+    });
+}
 
 /* ========== Victory → Gold ========== */
 async function handleVictory() {
