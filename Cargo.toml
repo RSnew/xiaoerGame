@@ -5,4 +5,4 @@ edition = "2021"
 description = "小二的回合制卡牌游戏"
 
 [dependencies]
-rand = "0.9"
+rand = "0.8"
