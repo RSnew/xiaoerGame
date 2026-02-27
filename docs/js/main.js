@@ -100,9 +100,21 @@ function persistAudioSettings() {
 
 /* ========== Victory → Gold ========== */
 async function handleVictory(bonus = 0) {
-    const reward = await auth.addBattleReward(Number(bonus) || 0);
-    if (reward) await refreshGold();
-    return reward;
+    const extra = Math.max(0, Number(bonus) || 0);
+
+    // Guest mode (or auth not configured): still show a local reward so the game loop is complete.
+    if (!auth.isConfigured()) {
+        return Math.floor(Math.random() * 3) + 1 + extra;
+    }
+
+    const reward = await auth.addBattleReward(extra);
+    if (reward) {
+        await refreshGold();
+        return reward;
+    }
+
+    // Auth configured but not logged in (or RPC failed): fall back to local reward display.
+    return Math.floor(Math.random() * 3) + 1 + extra;
 }
 
 /* ========== Auth UI ========== */
