@@ -12,6 +12,7 @@ use crate::character::Player;
 use crate::enemy::Slime;
 use crate::mechanics::combat::Combatant;
 use crate::skill::emergency_heal::create_emergency_heal;
+use crate::skill::fast_cycle::create_fast_cycle;
 use crate::skill::SkillEffect;
 
 const ROUND_DURATION: Duration = Duration::from_secs(5);
@@ -33,6 +34,7 @@ impl GameEngine {
         player.add_card(create_attack_card());
         player.add_card(create_defense_card());
         player.equip_skill(create_emergency_heal());
+        player.equip_skill(create_fast_cycle());
         for card in &mut player.hand {
             card.set_initial_cooldown_ms(PLAYER_INITIAL_CARD_COOLDOWN_MS);
         }
@@ -284,6 +286,12 @@ impl GameEngine {
                 } else {
                     println!("  ❤️ 生命值已满，未恢复。");
                 }
+            }
+            SkillEffect::ReduceAllCardCooldownMs(amount_ms) => {
+                for card in &mut self.player.hand {
+                    card.reduce_cooldown_ms(amount_ms);
+                }
+                println!("  🌀 当前所有卡牌冷却减少了 1 秒！");
             }
         }
         self.player.skills[skill_idx].trigger_cooldown();

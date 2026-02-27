@@ -1,9 +1,11 @@
 pub mod emergency_heal;
+pub mod fast_cycle;
 
 /// The effect a skill produces when activated.
 #[derive(Debug, Clone)]
 pub enum SkillEffect {
     Heal(i32),
+    ReduceAllCardCooldownMs(u64),
 }
 
 /// An equippable skill with a cooldown.
@@ -25,6 +27,12 @@ impl Skill {
             cooldown,
             current_cooldown: 0,
         }
+    }
+
+    /// Set an initial cooldown (e.g. "available after X turns").
+    pub fn with_initial_cooldown(mut self, initial_cooldown: u32) -> Self {
+        self.current_cooldown = initial_cooldown;
+        self
     }
 
     pub fn is_ready(&self) -> bool {
