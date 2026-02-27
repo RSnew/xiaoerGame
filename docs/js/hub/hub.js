@@ -103,8 +103,7 @@ function renderCards() {
 
     dom.availableCards.innerHTML = '';
     ALL_CARDS.forEach(meta => {
-        const equippedCount = equipped.filter(id => id === meta.id).length;
-        const el = createAvailableCard(meta, equippedCount, equipped.length >= MAX_EQUIPPED_CARDS);
+        const el = createAvailableCard(meta);
         dom.availableCards.appendChild(el);
     });
 }
@@ -140,7 +139,7 @@ function createCardElement(meta, isEquipped, index) {
     return el;
 }
 
-function createAvailableCard(meta, equippedCount, isFull) {
+function createAvailableCard(meta) {
     const el = document.createElement('div');
     el.className = 'hub-card';
     el.innerHTML = `
@@ -151,10 +150,6 @@ function createAvailableCard(meta, equippedCount, isFull) {
     `;
 
     el.addEventListener('click', () => {
-        if (isFull) {
-            showToast('卡牌栏位已满（最多 4 张）');
-            return;
-        }
         equipCard(meta.id);
     });
 
@@ -205,7 +200,7 @@ function renderSkills() {
 
     dom.availableSkills.innerHTML = '';
     ALL_SKILLS.forEach(meta => {
-        const el = createAvailableSkill(meta, equipped.length >= MAX_EQUIPPED_SKILLS);
+        const el = createAvailableSkill(meta);
         dom.availableSkills.appendChild(el);
     });
 }
@@ -242,7 +237,7 @@ function createSkillElement(meta, isEquipped, index) {
     return el;
 }
 
-function createAvailableSkill(meta, isFull) {
+function createAvailableSkill(meta) {
     const el = document.createElement('div');
     el.className = 'hub-card hub-skill-card';
     el.innerHTML = `
@@ -254,10 +249,6 @@ function createAvailableSkill(meta, isFull) {
     `;
 
     el.addEventListener('click', () => {
-        if (isFull) {
-            showToast('技能栏位已满（最多 2 个）');
-            return;
-        }
         equipSkill(meta.id);
     });
 
