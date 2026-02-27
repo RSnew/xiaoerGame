@@ -447,7 +447,7 @@
     position: fixed;
     bottom: 32px;
     left: 50%;
-    transform: translateX(-50%) translateY(20px);
+    transform: translateX(-50%);
     padding: 10px 24px;
     background: var(--bg-panel);
     border: 1px solid var(--gold-dim);
@@ -456,18 +456,14 @@
     font-size: 0.88rem;
     font-weight: 600;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    z-index: 200;
-    opacity: 0;
-    animation: toastIn 0.3s ease forwards, toastOut 0.3s ease 1.8s forwards;
+    z-index: 9999;
     pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.3s ease;
 }
 
-@keyframes toastIn {
-    to { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
-@keyframes toastOut {
-    to { opacity: 0; transform: translateX(-50%) translateY(20px); }
+.hub-toast.fade-out {
+    opacity: 0;
 }
 
 /* ===== Responsive ===== */

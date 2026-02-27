@@ -302,15 +302,27 @@ function updateBattleButton() {
 }
 
 /* ========== Toast ========== */
-function showToast(message) {
-    const existing = document.querySelector('.hub-toast');
-    if (existing) existing.remove();
+let toastTimer = null;
+let toastFadeTimer = null;
 
-    const toast = document.createElement('div');
-    toast.className = 'hub-toast';
+function showToast(message) {
+    const toast = document.getElementById('toast-container');
+    if (!toast) return;
+
+    if (toastTimer) clearTimeout(toastTimer);
+    if (toastFadeTimer) clearTimeout(toastFadeTimer);
+
     toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2200);
+    toast.style.display = 'block';
+    toast.style.opacity = '1';
+    toast.style.transition = 'none';
+
+    toastTimer = setTimeout(() => {
+        toast.style.transition = 'opacity 0.4s ease';
+        toast.style.opacity = '0';
+        toastFadeTimer = setTimeout(() => { toast.style.display = 'none'; }, 450);
+        toastTimer = null;
+    }, 2500);
 }
 
 /* ========== Auth UI (same as main.js) ========== */
