@@ -592,7 +592,12 @@ export class GameEngine {
                 const bonus = this.player.victoryBonusGold();
                 const reward = await this.onVictory(bonus);
                 if (reward) {
-                    this.dom.resultGold.textContent = `💰 获得了 ${reward} 金币！`;
+                    const passiveName = this.player.passive?.name;
+                    if (bonus > 0 && passiveName) {
+                        this.dom.resultGold.textContent = `💰 获得了 ${reward} 金币！（${passiveName} +${bonus}）`;
+                    } else {
+                        this.dom.resultGold.textContent = `💰 获得了 ${reward} 金币！`;
+                    }
                     this.dom.resultGold.classList.remove('hidden');
                 }
             } catch { /* auth not configured */ }
