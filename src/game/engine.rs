@@ -91,7 +91,7 @@ impl GameEngine {
     fn play_round(&mut self, input_rx: &Receiver<String>) {
         self.print_status();
         self.print_actions();
-        println!("⏱️ 本回合持续 5 秒：卡牌与技能每回合各仅能使用一次，可在同回合先后使用。");
+        println!("⏱️ 本回合持续 5 秒：卡牌每回合仅能使用一次；技能不受回合次数限制，可与卡牌同回合使用。");
 
         let round_start = Instant::now();
         let round_end = round_start + ROUND_DURATION;
@@ -99,7 +99,6 @@ impl GameEngine {
         let enemy_action_at = self.plan_enemy_action_time(round_start, round_end);
 
         let mut player_used_card = false;
-        let mut player_used_skill = false;
         let mut player_did_any_action = false;
         let mut enemy_acted = false;
 
@@ -112,14 +111,13 @@ impl GameEngine {
             }
 
             while let Ok(line) = input_rx.try_recv() {
-                match self.try_execute_player_action(&line, player_used_card, player_used_skill) {
+                match self.try_execute_player_action(&line, player_used_card) {
                     PlayerActionResult::None => {}
                     PlayerActionResult::CardUsed => {
                         player_used_card = true;
                         player_did_any_action = true;
                     }
                     PlayerActionResult::SkillUsed => {
-                        player_used_skill = true;
                         player_did_any_action = true;
                     }
                 }
@@ -208,7 +206,7 @@ impl GameEngine {
             self.enemy.name(),
             self.enemy.speed()
         );
-        println!("📌 新机制：每回合 5 秒；卡牌与技能每回合各最多使用一次，可同回合使用。");
+        println!("📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。");
         println!("📌 卡牌冷却：每张牌 3 秒；开局玩家牌 1 秒冷却，敌方牌 2 秒冷却。");
         println!();
     }
@@ -245,7 +243,6 @@ impl GameEngine {
         &mut self,
         line: &str,
         player_used_card: bool,
-        player_used_skill: bool,
     ) -> PlayerActionResult {
         let total_actions = self.player.hand.len() + self.player.skills.len();
         if total_actions == 0 {
@@ -263,11 +260,7 @@ impl GameEngine {
         let card_count = self.player.hand.len();
         if choice < card_count {
             if player_used_card {
-                if player_used_skill {
-                    println!("\n⛔ 本回合卡牌与技能都已使用过。");
-                } else {
-                    println!("\n⛔ 本回合已使用过卡牌，但仍可使用技能。");
-                }
+                println!("\n⛔ 本回合已使用过卡牌，但仍可使用技能。");
                 return PlayerActionResult::None;
             }
             let (card_name, effect) = {
@@ -297,15 +290,6 @@ impl GameEngine {
         }
 
         let skill_idx = choice - card_count;
-        if player_used_skill {
-            if player_used_card {
-                println!("\n⛔ 本回合卡牌与技能都已使用过。");
-            } else {
-                println!("\n⛔ 本回合已使用过技能，但仍可使用卡牌。");
-            }
-            return PlayerActionResult::None;
-        }
-
         if !self.player.skills[skill_idx].is_ready() {
             println!(
                 "\n⏳ 「{}」仍在冷却中（剩余 {} 秒）。",
@@ -434,48 +418,54 @@ mod tests {
     }
 
     #[test]
-    fn card_then_skill_is_allowed_but_not_second_of_same_type() {
+    fn card_then_skills_are_allowed_but_not_second_card() {
         let mut engine = GameEngine::new();
         prepare_ready_actions(&mut engine);
 
-        let skill_choice = (engine.player.hand.len() + 1).to_string();
+        let first_skill_choice = (engine.player.hand.len() + 1).to_string();
+        let second_skill_choice = (engine.player.hand.len() + 2).to_string();
 
         assert_eq!(
-            engine.try_execute_player_action("1", false, false),
+            engine.try_execute_player_action("1", false),
             PlayerActionResult::CardUsed
         );
         assert_eq!(
-            engine.try_execute_player_action("1", true, false),
+            engine.try_execute_player_action("1", true),
             PlayerActionResult::None
         );
         assert_eq!(
-            engine.try_execute_player_action(&skill_choice, true, false),
+            engine.try_execute_player_action(&first_skill_choice, true),
             PlayerActionResult::SkillUsed
         );
         assert_eq!(
-            engine.try_execute_player_action(&skill_choice, true, true),
-            PlayerActionResult::None
+            engine.try_execute_player_action(&second_skill_choice, true),
+            PlayerActionResult::SkillUsed
         );
     }
 
     #[test]
-    fn skill_then_card_is_allowed_but_not_second_skill() {
+    fn skills_then_card_is_allowed_but_not_second_card() {
         let mut engine = GameEngine::new();
         prepare_ready_actions(&mut engine);
 
-        let skill_choice = (engine.player.hand.len() + 1).to_string();
+        let first_skill_choice = (engine.player.hand.len() + 1).to_string();
+        let second_skill_choice = (engine.player.hand.len() + 2).to_string();
 
         assert_eq!(
-            engine.try_execute_player_action(&skill_choice, false, false),
+            engine.try_execute_player_action(&first_skill_choice, false),
             PlayerActionResult::SkillUsed
         );
         assert_eq!(
-            engine.try_execute_player_action(&skill_choice, false, true),
-            PlayerActionResult::None
+            engine.try_execute_player_action(&second_skill_choice, false),
+            PlayerActionResult::SkillUsed
         );
         assert_eq!(
-            engine.try_execute_player_action("1", false, true),
+            engine.try_execute_player_action("1", false),
             PlayerActionResult::CardUsed
+        );
+        assert_eq!(
+            engine.try_execute_player_action("2", true),
+            PlayerActionResult::None
         );
     }
 }
