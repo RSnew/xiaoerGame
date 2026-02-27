@@ -44,7 +44,7 @@ impl GameEngine {
             std::cmp::Ordering::Greater => TurnPhase::PlayerTurn,
             std::cmp::Ordering::Less => TurnPhase::EnemyTurn,
             std::cmp::Ordering::Equal => {
-                if rand::rng().random_bool(0.5) {
+                if rand::thread_rng().gen_bool(0.5) {
                     TurnPhase::PlayerTurn
                 } else {
                     TurnPhase::EnemyTurn
