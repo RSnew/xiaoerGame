@@ -17,12 +17,6 @@ impl PassiveSkill {
         }
     }
 
-    pub fn description(&self) -> &'static str {
-        match self {
-            PassiveSkill::Prepared => "胜利后额外获得 1 金币",
-        }
-    }
-
     pub fn victory_bonus_gold(&self) -> i32 {
         match self {
             PassiveSkill::Prepared => 1,
