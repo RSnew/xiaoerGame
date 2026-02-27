@@ -1,0 +1,482 @@
+/* ===== Hub Header ===== */
+#hub-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 20px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    position: relative;
+}
+
+.hub-hero-frame {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--blue);
+    background: radial-gradient(circle, #1c1c38 0%, #12122a 100%);
+    box-shadow: 0 0 18px rgba(80, 160, 255, 0.25);
+    flex-shrink: 0;
+}
+
+.hub-hero-frame .fighter-emoji {
+    font-size: 2rem;
+}
+
+.hub-hero-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.hub-hero-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+
+.hub-hero-title {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin: 2px 0 0;
+}
+
+.hub-gold-large {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    background: rgba(240, 200, 80, 0.08);
+    border: 1px solid rgba(240, 200, 80, 0.2);
+    border-radius: 24px;
+    flex-shrink: 0;
+}
+
+.gold-icon {
+    font-size: 1.3rem;
+}
+
+#hub-gold-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Hub Navigation ===== */
+#hub-nav {
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.hub-tab {
+    flex: 1;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-size: 0.92rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.hub-tab:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.hub-tab.active {
+    background: #20203c;
+    border-color: var(--gold-dim);
+    color: var(--gold);
+    font-weight: 600;
+}
+
+/* ===== Panels ===== */
+.hub-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    animation: fadeSlideIn 0.3s ease both;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.panel-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+
+.slot-counter {
+    padding: 4px 14px;
+    background: rgba(240, 200, 80, 0.08);
+    border: 1px solid rgba(240, 200, 80, 0.2);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+}
+
+.slot-counter.full {
+    background: rgba(255, 64, 96, 0.08);
+    border-color: rgba(255, 64, 96, 0.3);
+    color: var(--red);
+}
+
+/* ===== Equipped Zone ===== */
+.equipped-zone {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 80px;
+    padding: 16px;
+    background: rgba(80, 160, 255, 0.03);
+    border: 2px dashed rgba(80, 160, 255, 0.15);
+    border-radius: 12px;
+    justify-content: center;
+    align-items: center;
+}
+
+.equipped-zone:empty::after {
+    content: '拖放卡牌至此处或点击下方卡牌装备';
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    opacity: 0.6;
+}
+
+/* ===== Divider ===== */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0 16px;
+    color: var(--text-dim);
+    font-size: 0.82rem;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+/* ===== Available Zone ===== */
+.available-zone {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* ===== Hub Cards ===== */
+.hub-card {
+    width: 140px;
+    padding: 16px 12px 14px;
+    background: linear-gradient(135deg, #22224a, #1a1a38);
+    border: 2px solid var(--gold-dim);
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    user-select: none;
+    position: relative;
+}
+
+.hub-card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 15px;
+    background: linear-gradient(135deg, rgba(240, 200, 80, 0.15), transparent 60%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.22s;
+}
+
+.hub-card:hover::before { opacity: 1; }
+
+.hub-card:hover {
+    transform: translateY(-6px) scale(1.03);
+    border-color: var(--gold);
+    box-shadow: 0 8px 24px rgba(240, 200, 80, 0.2), 0 0 0 1px rgba(240, 200, 80, 0.1);
+}
+
+.hub-card:active {
+    transform: translateY(-2px) scale(1.01);
+}
+
+.hub-card .card-icon {
+    font-size: 2rem;
+    margin-bottom: 6px;
+}
+
+.hub-card .card-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 4px;
+}
+
+.hub-card .card-desc {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    line-height: 1.4;
+}
+
+.hub-card .card-badge {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 20px;
+}
+
+.badge-damage {
+    color: var(--red);
+    border: 1px solid rgba(255, 64, 96, 0.3);
+    background: rgba(255, 64, 96, 0.08);
+}
+
+.badge-shield {
+    color: var(--blue);
+    border: 1px solid rgba(80, 160, 255, 0.3);
+    background: rgba(80, 160, 255, 0.08);
+}
+
+.badge-heal {
+    color: var(--green);
+    border: 1px solid rgba(64, 216, 128, 0.3);
+    background: rgba(64, 216, 128, 0.08);
+}
+
+/* Skill cards in hub */
+.hub-card.hub-skill-card {
+    border-color: rgba(64, 216, 128, 0.5);
+}
+
+.hub-card.hub-skill-card .card-name {
+    color: var(--green);
+}
+
+.hub-card.hub-skill-card:hover {
+    border-color: var(--green);
+    box-shadow: 0 8px 24px rgba(64, 216, 128, 0.2), 0 0 0 1px rgba(64, 216, 128, 0.1);
+}
+
+.hub-card.hub-skill-card:hover::before {
+    background: linear-gradient(135deg, rgba(64, 216, 128, 0.15), transparent 60%);
+}
+
+/* Equipped card indicator */
+.hub-card .equipped-mark {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 24px;
+    height: 24px;
+    background: var(--green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    color: #12122a;
+    font-weight: 800;
+    box-shadow: 0 2px 8px rgba(64, 216, 128, 0.4);
+    animation: popIn 0.25s ease both;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* Remove button on equipped cards */
+.hub-card .btn-remove {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    width: 22px;
+    height: 22px;
+    background: var(--red);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    box-shadow: 0 2px 8px rgba(255, 64, 96, 0.4);
+}
+
+.hub-card:hover .btn-remove {
+    opacity: 1;
+}
+
+/* Cooldown info for skills */
+.hub-card .cooldown-info {
+    margin-top: 6px;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    opacity: 0.8;
+}
+
+/* Empty slot placeholder */
+.empty-slot {
+    width: 140px;
+    height: 160px;
+    border: 2px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-dim);
+    opacity: 0.4;
+    font-size: 0.78rem;
+    transition: border-color 0.2s, opacity 0.2s;
+}
+
+.empty-slot:hover {
+    border-color: rgba(240, 200, 80, 0.2);
+    opacity: 0.6;
+}
+
+.empty-slot-icon {
+    font-size: 1.6rem;
+    opacity: 0.5;
+}
+
+/* ===== Shop Placeholder ===== */
+.shop-placeholder {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text-dim);
+}
+
+.shop-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    opacity: 0.6;
+}
+
+.shop-placeholder h2 {
+    font-size: 1.3rem;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+
+.shop-placeholder p {
+    font-size: 0.92rem;
+    margin-bottom: 4px;
+}
+
+.shop-hint {
+    font-size: 0.82rem !important;
+    opacity: 0.6;
+    margin-top: 8px !important;
+}
+
+/* ===== Battle Button ===== */
+#battle-action {
+    text-align: center;
+    padding: 8px 0;
+}
+
+.battle-btn {
+    display: inline-block;
+    padding: 16px 56px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #12122a;
+    background: linear-gradient(135deg, var(--gold), #e0b030);
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    letter-spacing: 1.5px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(240, 200, 80, 0.3);
+}
+
+.battle-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(240, 200, 80, 0.45);
+}
+
+.battle-btn:active {
+    transform: translateY(-1px);
+}
+
+.battle-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 560px) {
+    #hub-header {
+        flex-wrap: wrap;
+    }
+
+    .hub-hero-frame {
+        width: 56px;
+        height: 56px;
+    }
+
+    .hub-hero-frame .fighter-emoji {
+        font-size: 1.6rem;
+    }
+
+    .hub-gold-large {
+        margin-left: auto;
+    }
+
+    .hub-card {
+        width: 120px;
+        padding: 14px 10px 12px;
+    }
+
+    .hub-card .card-icon {
+        font-size: 1.6rem;
+    }
+
+    .empty-slot {
+        width: 120px;
+        height: 140px;
+    }
+
+    .battle-btn {
+        padding: 14px 40px;
+        font-size: 1.05rem;
+    }
+}

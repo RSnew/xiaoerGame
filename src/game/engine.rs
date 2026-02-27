@@ -1,5 +1,7 @@
 use std::io::{self, BufRead, Write};
 
+use rand::Rng;
+
 use crate::card::attack::create_attack_card;
 use crate::card::defense::create_defense_card;
 use crate::card::CardEffect;
@@ -27,11 +29,27 @@ impl GameEngine {
 
         let enemy = Slime::new("史莱姆", 3);
 
+        let phase = Self::decide_first_turn(player.speed(), enemy.speed());
+
         Self {
             player,
             enemy,
-            phase: TurnPhase::PlayerTurn,
+            phase,
             round: 1,
+        }
+    }
+
+    fn decide_first_turn(player_speed: i32, enemy_speed: i32) -> TurnPhase {
+        match player_speed.cmp(&enemy_speed) {
+            std::cmp::Ordering::Greater => TurnPhase::PlayerTurn,
+            std::cmp::Ordering::Less => TurnPhase::EnemyTurn,
+            std::cmp::Ordering::Equal => {
+                if rand::rng().random_bool(0.5) {
+                    TurnPhase::PlayerTurn
+                } else {
+                    TurnPhase::EnemyTurn
+                }
+            }
         }
     }
 
@@ -67,6 +85,11 @@ impl GameEngine {
         println!("╚══════════════════════════════════╝");
         println!();
         println!("战斗开始！ {} vs {}", self.player.name(), self.enemy.name());
+        let first = match self.phase {
+            TurnPhase::PlayerTurn => self.player.name(),
+            TurnPhase::EnemyTurn => self.enemy.name(),
+        };
+        println!("⚡ {} 抢得先手！", first);
         println!();
     }
 

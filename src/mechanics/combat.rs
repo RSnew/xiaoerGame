@@ -3,6 +3,7 @@ pub trait Combatant {
     fn name(&self) -> &str;
     fn hp(&self) -> i32;
     fn max_hp(&self) -> i32;
+    fn speed(&self) -> i32;
     fn shield(&self) -> i32;
     fn add_shield(&mut self, amount: i32);
     fn clear_shield(&mut self);
@@ -63,6 +64,9 @@ mod tests {
         }
         fn max_hp(&self) -> i32 {
             self.max_hp
+        }
+        fn speed(&self) -> i32 {
+            3
         }
         fn shield(&self) -> i32 {
             self.shield
