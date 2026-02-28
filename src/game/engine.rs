@@ -425,8 +425,32 @@ impl GameEngine {
 }
 
 #[cfg(test)]
+impl GameEngine {
+    /// 测试专用构造器：使用指定敌人，所有卡牌和技能均立即可用（冷却为 0）。
+    fn new_with_enemy(enemy: Box<dyn Combatant>) -> Self {
+        let mut player = Player::new("勇者", 3);
+        player.set_passive(PassiveSkill::Prepared);
+        player.add_card(create_attack_card());
+        player.add_card(create_defense_card());
+        player.equip_skill(create_emergency_heal());
+        player.equip_skill(create_fast_cycle());
+
+        let mut enemy_card = create_attack_card();
+        enemy_card.set_initial_cooldown_ms(0);
+
+        Self {
+            player,
+            enemy,
+            round: 1,
+            enemy_card,
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
+    use crate::enemy::{GoblinRogue, Slime};
 
     fn prepare_ready_actions(engine: &mut GameEngine) {
         for card in &mut engine.player.hand {
@@ -434,6 +458,139 @@ mod tests {
         }
         for skill in &mut engine.player.skills {
             skill.remaining_cooldown_ms = 0;
+        }
+    }
+
+    // ── 模拟测试 ────────────────────────────────────────────────────────────
+
+    /// 攻击卡造成伤害：使用攻击牌后敌方 HP 下降
+    #[test]
+    fn sim_attack_card_damages_enemy() {
+        let mut engine = GameEngine::new_with_enemy(Box::new(Slime::new("史莱姆", 3)));
+        let hp_before = engine.enemy.hp();
+        engine.try_execute_player_action("1", false);
+        assert!(engine.enemy.hp() < hp_before, "攻击牌应减少敌方 HP");
+    }
+
+    /// 防御卡给予护盾：使用防御牌后玩家获得护盾
+    #[test]
+    fn sim_defense_card_shields_player() {
+        let mut engine = GameEngine::new_with_enemy(Box::new(Slime::new("史莱姆", 3)));
+        assert_eq!(engine.player.shield(), 0);
+        engine.try_execute_player_action("2", false);
+        assert!(engine.player.shield() > 0, "防御牌应给予玩家护盾");
+    }
+
+    /// 敌方行动造成伤害：敌人出牌后玩家 HP 下降
+    #[test]
+    fn sim_enemy_action_damages_player() {
+        let mut engine = GameEngine::new_with_enemy(Box::new(Slime::new("史莱姆", 3)));
+        let hp_before = engine.player.hp();
+        engine.execute_enemy_action();
+        assert!(engine.player.hp() < hp_before, "敌方攻击牌应减少玩家 HP");
+    }
+
+    /// 护盾完全吸收敌方攻击：玩家先防御后被攻击，HP 不变
+    #[test]
+    fn sim_shield_fully_absorbs_enemy_hit() {
+        // 攻击牌造成 1 点，防御牌给 1 护盾 —— 护盾刚好全抵
+        let mut engine = GameEngine::new_with_enemy(Box::new(Slime::new("史莱姆", 3)));
+        engine.try_execute_player_action("2", false); // 防御 → shield = 1
+        let hp_before = engine.player.hp();
+        engine.execute_enemy_action(); // 敌攻击 1 伤害，全被护盾吸收
+        assert_eq!(engine.player.hp(), hp_before, "护盾应完全吸收 1 点伤害");
+        assert_eq!(engine.player.shield(), 0, "护盾耗尽后应归零");
+    }
+
+    /// 玩家两次攻击击杀 2 HP 史莱姆
+    #[test]
+    fn sim_player_kills_slime_in_two_hits() {
+        let mut engine = GameEngine::new_with_enemy(Box::new(Slime::new("史莱姆", 2)));
+        // 第一回合
+        engine.player.hand[0].set_initial_cooldown_ms(0);
+        engine.try_execute_player_action("1", false);
+        assert!(engine.enemy.is_alive(), "第一击后史莱姆仍存活");
+        // 重置冷却模拟下一回合
+        engine.player.hand[0].set_initial_cooldown_ms(0);
+        engine.try_execute_player_action("1", false);
+        assert!(!engine.enemy.is_alive(), "第二击后史莱姆应被击败");
+        assert!(engine.player.is_alive(), "玩家应存活");
+    }
+
+    /// 急救技能恢复 HP
+    #[test]
+    fn sim_emergency_heal_recovers_hp() {
+        let mut engine = GameEngine::new_with_enemy(Box::new(Slime::new("史莱姆", 3)));
+        engine.player.take_damage(2); // 玩家掉血到 1
+        assert_eq!(engine.player.hp(), 1);
+        let skill_choice = (engine.player.hand.len() + 1).to_string();
+        engine.try_execute_player_action(&skill_choice, false);
+        assert!(engine.player.hp() > 1, "急救技能应恢复 HP");
+    }
+
+    /// 快速循环技能减少所有卡牌冷却
+    #[test]
+    fn sim_fast_cycle_reduces_card_cooldowns() {
+        let mut engine = GameEngine::new_with_enemy(Box::new(Slime::new("史莱姆", 3)));
+        // 先触发所有卡牌冷却
+        for card in &mut engine.player.hand {
+            card.trigger_cooldown(); // 3000 ms
+        }
+        assert!(!engine.player.hand[0].is_ready());
+        // 清除 fast_cycle 的初始冷却（同 prepare_ready_actions 的处理方式）
+        for skill in &mut engine.player.skills {
+            skill.remaining_cooldown_ms = 0;
+        }
+        // 使用快速循环（第 2 个技能）
+        let skill_choice = (engine.player.hand.len() + 2).to_string();
+        engine.try_execute_player_action(&skill_choice, false);
+        // 冷却应减少（快速循环减少 1 秒 = 1000ms）
+        assert!(engine.player.hand[0].remaining_cooldown_ms() < 3000);
+    }
+
+    /// 哥布林刺客躲闪概率统计：200 次攻击中闪避率在 [2%, 25%] 内
+    #[test]
+    fn sim_goblin_rogue_dodge_is_probabilistic() {
+        // 给 1000 HP 确保不会在测试中被击杀
+        let mut engine = GameEngine::new_with_enemy(Box::new(GoblinRogue::new("哥布林刺客", 1000)));
+        const TRIALS: usize = 200;
+        let mut dodge_count = 0;
+
+        for _ in 0..TRIALS {
+            let hp_before = engine.enemy.hp();
+            engine.player.hand[0].set_initial_cooldown_ms(0); // 重置冷却
+            engine.try_execute_player_action("1", false);
+            if engine.enemy.hp() == hp_before {
+                dodge_count += 1;
+            }
+        }
+
+        let dodge_rate = dodge_count as f64 / TRIALS as f64;
+        assert!(
+            dodge_rate < 0.25,
+            "闪避率 {:.1}% 过高（期望 ~10%）",
+            dodge_rate * 100.0
+        );
+        assert!(
+            dodge_rate > 0.02,
+            "闪避率 {:.1}% 过低（期望 ~10%）",
+            dodge_rate * 100.0
+        );
+    }
+
+    /// 史莱姆无法闪避：100 次攻击全部命中
+    #[test]
+    fn sim_slime_never_dodges() {
+        let mut engine = GameEngine::new_with_enemy(Box::new(Slime::new("史莱姆", 1000)));
+        for _ in 0..100 {
+            let hp_before = engine.enemy.hp();
+            engine.player.hand[0].set_initial_cooldown_ms(0);
+            engine.try_execute_player_action("1", false);
+            assert_eq!(
+                engine.enemy.hp(),
+                hp_before - 1,
+                "史莱姆不应闪避任何攻击"
+            );
         }
     }
 
