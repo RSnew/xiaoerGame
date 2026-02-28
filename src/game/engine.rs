@@ -10,7 +10,7 @@ use crate::card::defense::create_defense_card;
 use crate::card::{Card, CardEffect};
 use crate::character::player::PassiveSkill;
 use crate::character::Player;
-use crate::enemy::Slime;
+use crate::enemy::{GoblinRogue, Slime};
 use crate::mechanics::combat::Combatant;
 use crate::skill::emergency_heal::create_emergency_heal;
 use crate::skill::fast_cycle::create_fast_cycle;
@@ -24,7 +24,7 @@ const ENEMY_INITIAL_CARD_COOLDOWN_MS: u64 = 2_000;
 /// Drives the main game loop: each round lasts 5 seconds, both sides can act once per round.
 pub struct GameEngine {
     player: Player,
-    enemy: Slime,
+    enemy: Box<dyn Combatant>,
     round: u32,
     enemy_card: Card,
 }
@@ -48,7 +48,11 @@ impl GameEngine {
             card.set_initial_cooldown_ms(PLAYER_INITIAL_CARD_COOLDOWN_MS);
         }
 
-        let enemy = Slime::new("史莱姆", 3);
+        // 每次战斗从敌人池中随机选择一个对手
+        let enemy: Box<dyn Combatant> = match rand::thread_rng().gen_range(0..2u32) {
+            0 => Box::new(Slime::new("史莱姆", 3)),
+            _ => Box::new(GoblinRogue::new("哥布林刺客", 4)),
+        };
         let mut enemy_card = create_attack_card();
         enemy_card.set_initial_cooldown_ms(ENEMY_INITIAL_CARD_COOLDOWN_MS);
 
@@ -206,6 +210,13 @@ impl GameEngine {
             self.enemy.name(),
             self.enemy.speed()
         );
+        let dodge = self.enemy.dodge_chance();
+        if dodge > 0.0 {
+            println!(
+                "🌀 敌方被动【躲闪大师】：每次受击有 {}% 概率完全闪避伤害！",
+                (dodge * 100.0).round() as u32
+            );
+        }
         println!("📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。");
         println!("📌 卡牌冷却：每张牌 3 秒；开局玩家牌 1 秒冷却，敌方牌 2 秒冷却。");
         println!();
@@ -344,6 +355,15 @@ impl GameEngine {
 
     /// Applies damage to the specified target side, printing shield / damage info.
     fn log_damage(&mut self, amount: i32, target_side: &str) {
+        // 闪避判定：仅敌方有概率触发
+        if target_side == "enemy" {
+            let dodge = self.enemy.dodge_chance();
+            if dodge > 0.0 && rand::thread_rng().gen_bool(dodge) {
+                println!("  💨 {} 触发【躲闪大师】，完全闪避了攻击！", self.enemy.name());
+                return;
+            }
+        }
+
         let (target_name, shield_before) = match target_side {
             "enemy" => (self.enemy.name().to_string(), self.enemy.shield()),
             _ => (self.player.name().to_string(), self.player.shield()),
