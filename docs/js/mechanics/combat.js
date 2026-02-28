@@ -6,6 +6,8 @@ export class Combatant {
         this.hp = maxHp;
         this.speed = speed;
         this.shield = 0;
+        /** Probability [0, 1] of dodging an incoming hit. Default 0 (no dodge). */
+        this.dodgeChance = 0;
     }
 
     /** Deals damage, absorbing through shield first. */

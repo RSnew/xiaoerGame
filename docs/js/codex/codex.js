@@ -5,6 +5,7 @@ const REGISTRY = {
     ],
     enemies: [
         { id: 'slime', path: 'data/enemies/slime' },
+        { id: 'goblin_rogue', path: 'data/enemies/goblin_rogue' },
     ],
     cards: [
         { id: 'attack', path: 'data/cards/attack' },
