@@ -14,6 +14,11 @@ pub trait Combatant {
     /// Heal HP, capped at max_hp. Returns actual amount healed.
     fn heal(&mut self, amount: i32) -> i32;
 
+    /// Probability [0.0, 1.0] of dodging an incoming hit. Default is 0 (no dodge).
+    fn dodge_chance(&self) -> f64 {
+        0.0
+    }
+
     fn is_alive(&self) -> bool {
         self.hp() > 0
     }
