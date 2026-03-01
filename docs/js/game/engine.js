@@ -1,5 +1,6 @@
 import { Player } from '../character/player.js';
 import { Slime } from '../enemy/slime.js';
+import { GoblinRogue } from '../enemy/goblin_rogue.js';
 import { createAttackCard } from '../card/attack.js';
 import { createDefenseCard } from '../card/defense.js';
 import { CardEffect } from '../card/card.js';
@@ -35,7 +36,10 @@ export class GameEngine {
         this.renderCards();
         this.renderSkills();
         this.syncUI();
-        this.log('⚔️ 战斗开始！勇者 vs 史莱姆', 'system');
+        this.log(`⚔️ 战斗开始！勇者 vs ${this.enemy.name}`, 'system');
+        if (this.enemy.dodgeChance > 0) {
+            this.log(`🌀 敌方被动【躲闪大师】：每次受击有 ${Math.round(this.enemy.dodgeChance * 100)}% 概率完全闪避伤害！`, 'system');
+        }
         this.log('📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。', 'system');
         this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
         this.startRound();
@@ -76,7 +80,12 @@ export class GameEngine {
             card.setInitialCooldown(PLAYER_INITIAL_CARD_COOLDOWN_MS);
         }
 
-        this.enemy = new Slime('史莱姆', 3);
+        // 每次战斗从敌人池中随机选择一个对手
+        const enemyPool = [
+            () => new Slime('史莱姆', 3),
+            () => new GoblinRogue('哥布林刺客', 4),
+        ];
+        this.enemy = enemyPool[Math.floor(Math.random() * enemyPool.length)]();
         this.enemyCard = createAttackCard();
         this.enemyCard.setInitialCooldown(ENEMY_INITIAL_CARD_COOLDOWN_MS);
 
@@ -492,6 +501,12 @@ export class GameEngine {
         if (this.sfx) this.sfx.playAttack(attackerSide);
         await this.animateAttack(attackerSide);
 
+        // 闪避判定：仅敌方有概率触发（被动：躲闪大师）
+        if (targetSide === 'enemy' && target.dodgeChance > 0 && Math.random() < target.dodgeChance) {
+            this.log(`  💨 ${target.name} 触发【躲闪大师】，完全闪避了攻击！`, 'system');
+            return;
+        }
+
         const shieldBefore = target.shield;
         target.takeDamage(amount);
         const absorbed = shieldBefore - target.shield;
@@ -638,7 +653,10 @@ export class GameEngine {
         this.renderCards();
         this.renderSkills();
         this.syncUI();
-        this.log('⚔️ 新的战斗开始！', 'system');
+        this.log(`⚔️ 新的战斗开始！勇者 vs ${this.enemy.name}`, 'system');
+        if (this.enemy.dodgeChance > 0) {
+            this.log(`🌀 敌方被动【躲闪大师】：每次受击有 ${Math.round(this.enemy.dodgeChance * 100)}% 概率完全闪避伤害！`, 'system');
+        }
         this.log('📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。', 'system');
         this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
         this.startRound();

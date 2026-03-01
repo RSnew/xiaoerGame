@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 320">
+  <defs>
+    <linearGradient id="gr-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a0a2e"/>
+      <stop offset="100%" stop-color="#0d0618"/>
+    </linearGradient>
+    <radialGradient id="gr-glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#9060ff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#9060ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gr-body" cx="0.5" cy="0.4" r="0.55">
+      <stop offset="0%" stop-color="#5a8840"/>
+      <stop offset="100%" stop-color="#2a4820"/>
+    </radialGradient>
+    <radialGradient id="gr-hood" cx="0.5" cy="0.3" r="0.65">
+      <stop offset="0%" stop-color="#3a1f65"/>
+      <stop offset="100%" stop-color="#18083a"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="240" height="320" rx="16" fill="url(#gr-bg)"/>
+  <rect x="6" y="6" width="228" height="308" rx="12" fill="none" stroke="#7040c0" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Ambient glow -->
+  <ellipse cx="120" cy="190" rx="72" ry="68" fill="url(#gr-glow)"/>
+
+  <!-- Cloak / lower shadow -->
+  <path d="M78 298 L80 228 Q82 198 97 187 Q109 180 120 180 Q131 180 143 187 Q158 198 160 228 L162 298Z" fill="#14062a" opacity="0.92"/>
+
+  <!-- Goblin torso -->
+  <ellipse cx="120" cy="215" rx="28" ry="32" fill="url(#gr-body)" opacity="0.88"/>
+
+  <!-- Hood -->
+  <path d="M77 178 Q77 130 120 123 Q163 130 163 178 Q163 198 144 201 Q120 205 96 201 Q77 198 77 178Z" fill="url(#gr-hood)"/>
+
+  <!-- Hood peak -->
+  <path d="M111 125 Q120 103 129 125 Q120 131 111 125Z" fill="#220d40"/>
+
+  <!-- Deep face shadow -->
+  <ellipse cx="120" cy="170" rx="27" ry="21" fill="#080415" opacity="0.65"/>
+
+  <!-- Eyes — left -->
+  <ellipse cx="108" cy="167" rx="9" ry="7" fill="#ff5500" opacity="0.25"/>
+  <ellipse cx="108" cy="167" rx="6" ry="4.5" fill="#ff7722"/>
+  <ellipse cx="108" cy="167" rx="3" ry="2.2" fill="#ffd088"/>
+
+  <!-- Eyes — right -->
+  <ellipse cx="132" cy="167" rx="9" ry="7" fill="#ff5500" opacity="0.25"/>
+  <ellipse cx="132" cy="167" rx="6" ry="4.5" fill="#ff7722"/>
+  <ellipse cx="132" cy="167" rx="3" ry="2.2" fill="#ffd088"/>
+
+  <!-- Left arm -->
+  <path d="M95 207 Q82 218 74 238" stroke="#3a5828" stroke-width="11" stroke-linecap="round" fill="none"/>
+  <!-- Left dagger blade -->
+  <line x1="74" y1="238" x2="61" y2="266" stroke="#c8d4ff" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M61 266 L55 278 L64 268Z" fill="#c8d4ff"/>
+  <!-- Left dagger guard -->
+  <rect x="69" y="233" width="13" height="5" rx="1.5" fill="#7a5a30"/>
+
+  <!-- Right arm -->
+  <path d="M145 207 Q158 218 166 238" stroke="#3a5828" stroke-width="11" stroke-linecap="round" fill="none"/>
+  <!-- Right dagger blade -->
+  <line x1="166" y1="238" x2="179" y2="266" stroke="#c8d4ff" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M179 266 L185 278 L176 268Z" fill="#c8d4ff"/>
+  <!-- Right dagger guard -->
+  <rect x="158" y="233" width="13" height="5" rx="1.5" fill="#7a5a30"/>
+
+  <!-- Speed / dodge lines left -->
+  <line x1="44" y1="162" x2="66" y2="168" stroke="#9060ff" stroke-width="1.8" stroke-linecap="round" opacity="0.55"/>
+  <line x1="40" y1="176" x2="60" y2="180" stroke="#9060ff" stroke-width="1.2" stroke-linecap="round" opacity="0.38"/>
+  <line x1="46" y1="190" x2="64" y2="192" stroke="#9060ff" stroke-width="0.9" stroke-linecap="round" opacity="0.25"/>
+
+  <!-- Speed / dodge lines right -->
+  <line x1="196" y1="162" x2="174" y2="168" stroke="#9060ff" stroke-width="1.8" stroke-linecap="round" opacity="0.55"/>
+  <line x1="200" y1="176" x2="180" y2="180" stroke="#9060ff" stroke-width="1.2" stroke-linecap="round" opacity="0.38"/>
+  <line x1="194" y1="190" x2="176" y2="192" stroke="#9060ff" stroke-width="0.9" stroke-linecap="round" opacity="0.25"/>
+</svg>
