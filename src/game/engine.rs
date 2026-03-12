@@ -359,7 +359,10 @@ impl GameEngine {
         if target_side == "enemy" {
             let dodge = self.enemy.dodge_chance();
             if dodge > 0.0 && rand::thread_rng().gen_bool(dodge) {
-                println!("  💨 {} 触发【躲闪大师】，完全闪避了攻击！", self.enemy.name());
+                println!(
+                    "  💨 {} 触发【躲闪大师】，完全闪避了攻击！",
+                    self.enemy.name()
+                );
                 return;
             }
         }
@@ -586,11 +589,7 @@ mod tests {
             let hp_before = engine.enemy.hp();
             engine.player.hand[0].set_initial_cooldown_ms(0);
             engine.try_execute_player_action("1", false);
-            assert_eq!(
-                engine.enemy.hp(),
-                hp_before - 1,
-                "史莱姆不应闪避任何攻击"
-            );
+            assert_eq!(engine.enemy.hp(), hp_before - 1, "史莱姆不应闪避任何攻击");
         }
     }
 
