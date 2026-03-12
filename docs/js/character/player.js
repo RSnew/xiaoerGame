@@ -1,7 +1,7 @@
 import { Combatant } from '../mechanics/combat.js';
 
-export const MAX_CARDS = 4;
-export const MAX_SKILLS = 2;
+export const MAX_CARDS = 6;
+export const MAX_SKILLS = 3;
 
 /** The player-controlled character. */
 export class Player extends Combatant {
@@ -35,5 +35,17 @@ export class Player extends Combatant {
 
     victoryBonusGold() {
         return this.passive?.victoryBonusGold ? Number(this.passive.victoryBonusGold) : 0;
+    }
+
+    /** Reset HP and cooldowns for a new battle. */
+    resetForBattle() {
+        this.hp = this.maxHp;
+        this.shield = 0;
+        for (const card of this.hand) {
+            card.setInitialCooldown(0);
+        }
+        for (const skill of this.skills) {
+            skill.setInitialCooldown(0);
+        }
     }
 }

@@ -2,7 +2,7 @@ use crate::card::Card;
 use crate::mechanics::combat::Combatant;
 use crate::skill::Skill;
 
-pub const MAX_SKILLS: usize = 2;
+pub const MAX_SKILLS: usize = 3;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PassiveSkill {
@@ -66,6 +66,28 @@ impl Player {
 
     pub fn add_gold(&mut self, amount: i32) {
         self.gold = (self.gold + amount).max(0);
+    }
+
+    /// Spend gold. Returns false if not enough gold.
+    pub fn spend_gold(&mut self, amount: i32) -> bool {
+        if self.gold >= amount {
+            self.gold -= amount;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Reset HP to max for a new battle.
+    pub fn reset_for_battle(&mut self) {
+        self.hp = self.max_hp;
+        self.shield = 0;
+        for card in &mut self.hand {
+            card.set_initial_cooldown_ms(0);
+        }
+        for skill in &mut self.skills {
+            skill.remaining_cooldown_ms = 0;
+        }
     }
 
     pub fn victory_bonus_gold(&self) -> i32 {
@@ -177,6 +199,7 @@ mod tests {
     #[test]
     fn equip_up_to_max_skills() {
         let mut p = Player::new("勇者", 3);
+        assert!(p.equip_skill(create_emergency_heal()));
         assert!(p.equip_skill(create_emergency_heal()));
         assert!(p.equip_skill(create_emergency_heal()));
         assert!(!p.equip_skill(create_emergency_heal()));

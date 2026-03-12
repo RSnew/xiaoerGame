@@ -1,47 +1,43 @@
 import { Player } from '../character/player.js';
 import { Slime } from '../enemy/slime.js';
 import { GoblinRogue } from '../enemy/goblin_rogue.js';
+import { SkeletonMage } from '../enemy/skeleton_mage.js';
+import { ForestWolf } from '../enemy/forest_wolf.js';
+import { Dragon } from '../enemy/dragon.js';
 import { createAttackCard } from '../card/attack.js';
 import { createDefenseCard } from '../card/defense.js';
-import { CardEffect } from '../card/card.js';
+import { Card, CardEffect } from '../card/card.js';
 import { SkillEffect } from '../skill/skill.js';
 import { createEmergencyHeal } from '../skill/emergency_heal.js';
 import { createFastCycle } from '../skill/fast_cycle.js';
 import { getEquippedCards, getEquippedSkills } from '../hub/state.js';
-import { getCardById, getSkillById } from '../hub/registry.js';
+import { getCardById, getSkillById, ALL_CARDS, ALL_SKILLS } from '../hub/registry.js';
 
 const ROUND_DURATION_MS = 5000;
 const ROUND_TICK_MS = 200;
 const PLAYER_INITIAL_CARD_COOLDOWN_MS = 1000;
 const ENEMY_INITIAL_CARD_COOLDOWN_MS = 2000;
 const ENEMY_ACTION_BUFFER_MS = 300;
+const STAGES_BEFORE_BOSS = 3;
 
 /**
  * Drives the game: manages state, UI updates, animations, and timed-round flow.
+ * Supports multi-stage progression with shop and boss battle.
  */
 export class GameEngine {
-    /**
-     * @param {Object} options
-     * @param {function(number): Promise<number|null>} [options.onVictory] - called on win with bonus gold, returns gold earned
-     * @param {import('../audio/music.js').MusicManager} [options.music] - procedural music manager
-     * @param {import('../audio/sfx.js').SfxManager} [options.sfx] - procedural sound effects manager
-     */
     constructor(options = {}) {
         this.onVictory = options.onVictory || (() => Promise.resolve(null));
         this.music = options.music || null;
         this.sfx = options.sfx || null;
+        this.gold = 0;
+        this.stage = 1;
         this.cacheDom();
         this.bindRestart();
         this.initState();
         this.renderCards();
         this.renderSkills();
         this.syncUI();
-        this.log(`⚔️ 战斗开始！勇者 vs ${this.enemy.name}`, 'system');
-        if (this.enemy.dodgeChance > 0) {
-            this.log(`🌀 敌方被动【躲闪大师】：每次受击有 ${Math.round(this.enemy.dodgeChance * 100)}% 概率完全闪避伤害！`, 'system');
-        }
-        this.log('📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。', 'system');
-        this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
+        this.logStageStart();
         this.startRound();
     }
 
@@ -80,14 +76,7 @@ export class GameEngine {
             card.setInitialCooldown(PLAYER_INITIAL_CARD_COOLDOWN_MS);
         }
 
-        // 每次战斗从敌人池中随机选择一个对手
-        const enemyPool = [
-            () => new Slime('史莱姆', 3),
-            () => new GoblinRogue('哥布林刺客', 4),
-        ];
-        this.enemy = enemyPool[Math.floor(Math.random() * enemyPool.length)]();
-        this.enemyCard = createAttackCard();
-        this.enemyCard.setInitialCooldown(ENEMY_INITIAL_CARD_COOLDOWN_MS);
+        this.spawnEnemy();
 
         this.round = 1;
         this.busy = false;
@@ -100,6 +89,42 @@ export class GameEngine {
         this.lastTickAt = 0;
         this.enemyActionAt = null;
         this.roundTimerId = null;
+    }
+
+    spawnEnemy() {
+        const isBoss = this.stage > STAGES_BEFORE_BOSS;
+        if (isBoss) {
+            this.enemy = new Dragon('巨龙', 8);
+            this.enemyCard = new Card('龙息', '造成 2 点伤害', CardEffect.DAMAGE, 2, '🔥', 4000);
+        } else {
+            const enemyPool = [
+                () => new Slime('史莱姆', 3),
+                () => new GoblinRogue('哥布林刺客', 4),
+                () => new SkeletonMage('骷髅法师', 5),
+                () => new ForestWolf('森林狼', 3),
+            ];
+            this.enemy = enemyPool[Math.floor(Math.random() * enemyPool.length)]();
+            this.enemyCard = createAttackCard();
+        }
+        this.enemyCard.setInitialCooldown(ENEMY_INITIAL_CARD_COOLDOWN_MS);
+    }
+
+    logStageStart() {
+        const isBoss = this.stage > STAGES_BEFORE_BOSS;
+        if (isBoss) {
+            this.log('╔══════════════════════════╗', 'system');
+            this.log('║      Boss 战！           ║', 'system');
+            this.log('╚══════════════════════════╝', 'system');
+        } else {
+            this.log(`📜 第 ${this.stage}/${STAGES_BEFORE_BOSS} 关`, 'system');
+        }
+        this.log(`⚔️ 战斗开始！勇者 vs ${this.enemy.name}`, 'system');
+        if (this.enemy.dodgeChance > 0) {
+            this.log(`🌀 敌方被动：每次受击有 ${Math.round(this.enemy.dodgeChance * 100)}% 概率闪避！`, 'system');
+        }
+        if (this.enemy.shield > 0) {
+            this.log(`🛡️ 敌方被动：初始拥有 ${this.enemy.shield} 点护盾！`, 'system');
+        }
     }
 
     cacheDom() {
@@ -142,15 +167,25 @@ export class GameEngine {
             const el = document.createElement('div');
             el.className = 'card' + (this.isCardDisabled(card) ? ' card-disabled' : '');
             el.dataset.index = i;
+
+            let valueLabel;
+            if (!card.isReady()) {
+                valueLabel = `冷却 ${card.remainingCooldownSeconds()} 秒`;
+            } else if (card.effectType === CardEffect.DAMAGE) {
+                valueLabel = `伤害 ${card.effectValue}`;
+            } else if (card.effectType === CardEffect.SHIELD) {
+                valueLabel = `护盾 ${card.effectValue}`;
+            } else if (card.effectType === CardEffect.HEAL) {
+                valueLabel = `治疗 ${card.effectValue}`;
+            } else {
+                valueLabel = '可用';
+            }
+
             el.innerHTML = `
                 <div class="card-icon">${card.icon}</div>
                 <div class="card-name">${card.name}</div>
                 <div class="card-desc">${card.description}</div>
-                <div class="card-value">${
-                    card.isReady()
-                        ? `${card.effectType === CardEffect.DAMAGE ? '伤害' : '护盾'} ${card.effectValue}`
-                        : `冷却 ${card.remainingCooldownSeconds()} 秒`
-                }</div>
+                <div class="card-value">${valueLabel}</div>
             `;
             el.addEventListener('click', () => this.onCardClick(i));
             this.dom.handCards.appendChild(el);
@@ -199,7 +234,9 @@ export class GameEngine {
     }
 
     updateTurnBanner() {
-        this.dom.roundText.textContent = `第 ${this.round} 回合`;
+        const isBoss = this.stage > STAGES_BEFORE_BOSS;
+        const stageLabel = isBoss ? 'Boss' : `${this.stage}/${STAGES_BEFORE_BOSS}关`;
+        this.dom.roundText.textContent = `[${stageLabel}] 第 ${this.round} 回合`;
         const remainingMs = this.roundEndsAt > 0
             ? Math.max(0, this.roundEndsAt - Date.now())
             : ROUND_DURATION_MS;
@@ -271,7 +308,6 @@ export class GameEngine {
 
     /* ========== Turn flow ========== */
 
-    /** Start battle audio on the first user gesture (browser audio policy). */
     _ensureAudio() {
         if (this.music && this.music.currentTrack !== 'battle') {
             this.music.playBattleBGM();
@@ -407,6 +443,16 @@ export class GameEngine {
             await this.performAttack('player', this.enemy, 'enemy', card.effectValue);
         } else if (card.effectType === CardEffect.SHIELD) {
             await this.performDefense('player', this.player, card.effectValue);
+        } else if (card.effectType === CardEffect.HEAL) {
+            const healed = this.player.heal(card.effectValue);
+            await this.animateHeal('player');
+            if (healed > 0) {
+                if (this.sfx) this.sfx.playHeal();
+                this.log(`  ❤️ 恢复了 ${healed} 点生命值！`, 'player');
+            } else {
+                this.log(`  ❤️ 生命值已满，未恢复。`, 'system');
+            }
+            this.updateHpBars();
         }
 
         const finished = await this.checkGameOverAfterAction();
@@ -447,6 +493,18 @@ export class GameEngine {
                 card.reduceCooldown(reduceMs);
             }
             this.log('  🌀 当前所有卡牌冷却减少了 1 秒！', 'player');
+        } else if (skill.effectType === SkillEffect.DAMAGE_AND_HEAL) {
+            const { damage, heal } = skill.effectValue;
+            await this.performAttack('player', this.enemy, 'enemy', damage);
+            const healed = this.player.heal(heal);
+            if (healed > 0) {
+                await this.animateHeal('player');
+                if (this.sfx) this.sfx.playHeal();
+                this.log(`  ❤️ 同时恢复了 ${healed} 点生命值！`, 'player');
+            }
+            this.updateHpBars();
+        } else if (skill.effectType === SkillEffect.GAIN_SHIELD) {
+            await this.performDefense('player', this.player, skill.effectValue);
         }
 
         skill.triggerCooldown();
@@ -469,7 +527,16 @@ export class GameEngine {
 
         this.enemyCard.triggerCooldown();
         this.log(`▶ ${this.enemy.name} 使用了「${this.enemyCard.name}」！`, 'enemy');
-        await this.performAttack('enemy', this.player, 'player', this.enemyCard.effectValue);
+
+        if (this.enemyCard.effectType === CardEffect.DAMAGE) {
+            await this.performAttack('enemy', this.player, 'player', this.enemyCard.effectValue);
+        } else if (this.enemyCard.effectType === CardEffect.HEAL) {
+            const healed = this.enemy.heal(this.enemyCard.effectValue);
+            if (healed > 0) {
+                this.log(`  ❤️ ${this.enemy.name} 恢复了 ${healed} 点生命值！`, 'enemy');
+            }
+            this.updateHpBars();
+        }
 
         const finished = await this.checkGameOverAfterAction();
         this.busy = false;
@@ -483,7 +550,7 @@ export class GameEngine {
         if (!this.enemy.isAlive()) {
             this.log(`💀 ${this.enemy.name} 被击败了！`, 'result');
             await this.delay(400);
-            await this.showResult(true);
+            await this.handleVictory();
             return true;
         }
         if (!this.player.isAlive()) {
@@ -495,15 +562,147 @@ export class GameEngine {
         return false;
     }
 
+    async handleVictory() {
+        this.stopRoundTimer();
+
+        const isBoss = this.stage > STAGES_BEFORE_BOSS;
+        const baseReward = isBoss
+            ? 5 + Math.floor(Math.random() * 4)
+            : 1 + Math.floor(Math.random() * 3);
+        const bonus = this.player.victoryBonusGold();
+        const reward = baseReward + bonus;
+        this.gold += reward;
+
+        if (bonus > 0) {
+            this.log(`💰 获得 ${reward} 金币！（基础 ${baseReward} + 预备 +${bonus}）`, 'result');
+        } else {
+            this.log(`💰 获得 ${reward} 金币！`, 'result');
+        }
+        this.log(`🪙 当前金币：${this.gold}`, 'result');
+
+        if (isBoss) {
+            await this.showResult(true, true);
+            return;
+        }
+
+        await this.showShop();
+    }
+
+    /* ========== Shop ========== */
+
+    async showShop() {
+        this.stopRoundTimer();
+        this.gameOver = true;
+
+        const ownedCardNames = new Set(this.player.hand.map(c => c.name));
+        const ownedSkillNames = new Set(this.player.skills.map(s => s.name));
+
+        const shopItems = [];
+        for (const meta of ALL_CARDS) {
+            if (meta.shopPrice && !ownedCardNames.has(meta.name)) {
+                shopItems.push({ type: 'card', meta });
+            }
+        }
+        for (const meta of ALL_SKILLS) {
+            if (meta.shopPrice && !ownedSkillNames.has(meta.name)) {
+                shopItems.push({ type: 'skill', meta });
+            }
+        }
+
+        const overlay = this.dom.overlay;
+        this.dom.resultIcon.textContent = '🛒';
+        this.dom.resultTitle.textContent = `第 ${this.stage} 关胜利！— 商店`;
+        this.dom.resultGold.textContent = `🪙 当前金币：${this.gold}`;
+        this.dom.resultGold.classList.remove('hidden');
+
+        if (shopItems.length === 0) {
+            this.dom.resultDetail.textContent = '商店已售罄！你拥有了所有物品。';
+        } else {
+            this.dom.resultDetail.innerHTML = '';
+            const list = document.createElement('div');
+            list.style.cssText = 'text-align:left; margin:8px 0;';
+            for (const item of shopItems) {
+                const btn = document.createElement('button');
+                btn.style.cssText = 'display:block; width:100%; margin:6px 0; padding:8px; cursor:pointer; border:1px solid #555; border-radius:6px; background:#2a2a3a; color:#eee; font-size:0.95em;';
+                btn.textContent = `${item.meta.icon} ${item.meta.name} — ${item.meta.description} （💰${item.meta.shopPrice}）`;
+                btn.addEventListener('click', () => {
+                    this.buyShopItem(item, btn);
+                });
+                list.appendChild(btn);
+            }
+            this.dom.resultDetail.appendChild(list);
+        }
+
+        const restartBtn = document.getElementById('btn-restart');
+        const originalText = restartBtn.textContent;
+        restartBtn.textContent = '继续冒险 ➡️';
+        overlay.classList.remove('hidden');
+
+        return new Promise(resolve => {
+            const handler = () => {
+                restartBtn.removeEventListener('click', handler);
+                restartBtn.textContent = originalText;
+                overlay.classList.add('hidden');
+                this.dom.resultDetail.innerHTML = '';
+                this.dom.resultGold.classList.add('hidden');
+                this.advanceToNextStage();
+                resolve();
+            };
+            restartBtn.addEventListener('click', handler, { once: true });
+        });
+    }
+
+    buyShopItem(item, btn) {
+        if (this.gold < item.meta.shopPrice) {
+            this.log(`❌ 金币不足！需要 ${item.meta.shopPrice}，当前 ${this.gold}`, 'system');
+            return;
+        }
+
+        if (item.type === 'card') {
+            this.player.addCard(item.meta.factory());
+            this.gold -= item.meta.shopPrice;
+            this.log(`✅ 购买了「${item.meta.name}」卡！`, 'result');
+        } else if (item.type === 'skill') {
+            if (!this.player.equipSkill(item.meta.factory())) {
+                this.log('❌ 技能栏已满（最多3个）！', 'system');
+                return;
+            }
+            this.gold -= item.meta.shopPrice;
+            this.log(`✅ 装备了「${item.meta.name}」技能！`, 'result');
+        }
+
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+        btn.textContent += ' ✅ 已购买';
+        this.dom.resultGold.textContent = `🪙 当前金币：${this.gold}`;
+    }
+
+    advanceToNextStage() {
+        this.stage++;
+        this.round = 1;
+        this.gameOver = false;
+
+        this.player.resetForBattle();
+        for (const card of this.player.hand) {
+            card.setInitialCooldown(PLAYER_INITIAL_CARD_COOLDOWN_MS);
+        }
+        this.spawnEnemy();
+
+        this.renderCards();
+        this.renderSkills();
+        this.syncUI();
+        this.logStageStart();
+        this.startRound();
+    }
+
     /* ========== Actions ========== */
 
     async performAttack(attackerSide, target, targetSide, amount) {
         if (this.sfx) this.sfx.playAttack(attackerSide);
         await this.animateAttack(attackerSide);
 
-        // 闪避判定：仅敌方有概率触发（被动：躲闪大师）
         if (targetSide === 'enemy' && target.dodgeChance > 0 && Math.random() < target.dodgeChance) {
-            this.log(`  💨 ${target.name} 触发【躲闪大师】，完全闪避了攻击！`, 'system');
+            this.log(`  💨 ${target.name} 闪避了攻击！`, 'system');
             return;
         }
 
@@ -600,7 +799,6 @@ export class GameEngine {
         popup.remove();
     }
 
-    /** Remove then re-add a class, forcing the browser to restart the animation. */
     retrigger(el, cls) {
         el.classList.remove(cls);
         void el.offsetWidth;
@@ -609,7 +807,7 @@ export class GameEngine {
 
     /* ========== Game over ========== */
 
-    async showResult(won) {
+    async showResult(won, isFinalVictory = false) {
         this.stopRoundTimer();
         this.gameOver = true;
 
@@ -619,27 +817,24 @@ export class GameEngine {
         }
 
         this.dom.resultIcon.textContent  = won ? '🎉' : '💀';
-        this.dom.resultTitle.textContent = won ? '你胜利了！' : '你被击败了…';
-        this.dom.resultDetail.textContent = won
-            ? `经过 ${this.round} 回合激战，${this.player.name} 以 ${this.player.hp}/${this.player.maxHp} HP 获胜！`
-            : `${this.enemy.name} 在第 ${this.round} 回合击败了你。`;
-
-        this.dom.resultGold.classList.add('hidden');
-        if (won) {
-            try {
-                const bonus = this.player.victoryBonusGold();
-                const reward = await this.onVictory(bonus);
-                if (reward) {
-                    const passiveName = this.player.passive?.name;
-                    if (bonus > 0 && passiveName) {
-                        this.dom.resultGold.textContent = `💰 获得了 ${reward} 金币！（${passiveName} +${bonus}）`;
-                    } else {
-                        this.dom.resultGold.textContent = `💰 获得了 ${reward} 金币！`;
-                    }
-                    this.dom.resultGold.classList.remove('hidden');
-                }
-            } catch { /* auth not configured */ }
+        if (isFinalVictory) {
+            this.dom.resultTitle.textContent = '恭喜通关！';
+            this.dom.resultDetail.textContent = `你击败了巨龙，以 ${this.player.hp}/${this.player.maxHp} HP 通关！`;
+        } else if (won) {
+            this.dom.resultTitle.textContent = '你胜利了！';
+            this.dom.resultDetail.textContent = `经过 ${this.round} 回合激战，${this.player.name} 获胜！`;
+        } else {
+            this.dom.resultTitle.textContent = '你被击败了…';
+            this.dom.resultDetail.textContent = `${this.enemy.name} 在第 ${this.stage} 关第 ${this.round} 回合击败了你。`;
         }
+
+        this.dom.resultGold.textContent = `🪙 总金币：${this.gold}`;
+        this.dom.resultGold.classList.remove('hidden');
+
+        try {
+            const bonus = this.player.victoryBonusGold();
+            if (won) await this.onVictory(bonus);
+        } catch { /* auth not configured */ }
 
         this.dom.overlay.classList.remove('hidden');
     }
@@ -649,16 +844,13 @@ export class GameEngine {
         this.dom.overlay.classList.add('hidden');
         this.dom.resultGold.classList.add('hidden');
         this.dom.logBody.innerHTML = '';
+        this.gold = 0;
+        this.stage = 1;
         this.initState();
         this.renderCards();
         this.renderSkills();
         this.syncUI();
-        this.log(`⚔️ 新的战斗开始！勇者 vs ${this.enemy.name}`, 'system');
-        if (this.enemy.dodgeChance > 0) {
-            this.log(`🌀 敌方被动【躲闪大师】：每次受击有 ${Math.round(this.enemy.dodgeChance * 100)}% 概率完全闪避伤害！`, 'system');
-        }
-        this.log('📌 新机制：每回合 5 秒；卡牌每回合最多使用一次，技能不受回合次数限制。', 'system');
-        this.log('📌 卡牌冷却：统一 3 秒；开局玩家牌冷却 1 秒，敌方牌冷却 2 秒。', 'system');
+        this.logStageStart();
         this.startRound();
         if (this.music) this.music.playBattleBGM();
     }

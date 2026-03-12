@@ -2,7 +2,7 @@
 export const CardEffect = Object.freeze({
     DAMAGE: 'damage',
     SHIELD: 'shield',
-    // Future: HEAL, DRAW, …
+    HEAL: 'heal',
 });
 
 /** A playable card. */
