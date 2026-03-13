@@ -7,13 +7,14 @@ export const CardEffect = Object.freeze({
 
 /** A playable card. */
 export class Card {
-    constructor(name, description, effectType, effectValue, icon = '⚔️', cooldownMs = 3000) {
+    constructor(name, description, effectType, effectValue, icon = '⚔️', cooldownMs = 3000, energyCost = 1) {
         this.name = name;
         this.description = description;
         this.effectType = effectType;
         this.effectValue = effectValue;
         this.icon = icon;
         this.cooldownMs = cooldownMs;
+        this.energyCost = energyCost;
         this.remainingCooldownMs = 0;
     }
 
