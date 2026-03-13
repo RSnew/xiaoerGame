@@ -1,11 +1,15 @@
 pub mod emergency_heal;
 pub mod fast_cycle;
+pub mod vampiric_touch;
+pub mod war_cry;
 
 /// The effect a skill produces when activated.
 #[derive(Debug, Clone)]
 pub enum SkillEffect {
     Heal(i32),
     ReduceAllCardCooldownMs(u64),
+    DamageAndHeal { damage: i32, heal: i32 },
+    GainShield(i32),
 }
 
 /// An equippable skill with a time-based cooldown.

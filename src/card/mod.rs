@@ -1,5 +1,7 @@
 pub mod attack;
+pub mod critical_strike;
 pub mod defense;
+pub mod heal;
 
 pub const DEFAULT_CARD_COOLDOWN_MS: u64 = 3_000;
 
@@ -8,7 +10,7 @@ pub const DEFAULT_CARD_COOLDOWN_MS: u64 = 3_000;
 pub enum CardEffect {
     Damage(i32),
     Shield(i32),
-    // Future: Heal(i32), DrawCards(usize), …
+    Heal(i32),
 }
 
 /// A playable card in the game.

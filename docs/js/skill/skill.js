@@ -2,6 +2,8 @@
 export const SkillEffect = Object.freeze({
     HEAL: 'heal',
     REDUCE_ALL_CARD_COOLDOWN: 'reduce_all_card_cooldown',
+    DAMAGE_AND_HEAL: 'damage_and_heal',
+    GAIN_SHIELD: 'gain_shield',
 });
 
 /** An equippable skill with a cooldown. */
