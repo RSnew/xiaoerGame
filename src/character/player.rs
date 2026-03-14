@@ -2,7 +2,7 @@ use crate::card::Card;
 use crate::mechanics::combat::Combatant;
 use crate::skill::Skill;
 
-pub const MAX_SKILLS: usize = 3;
+pub const MAX_SKILLS: usize = 2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PassiveSkill {
@@ -199,7 +199,6 @@ mod tests {
     #[test]
     fn equip_up_to_max_skills() {
         let mut p = Player::new("勇者", 3);
-        assert!(p.equip_skill(create_emergency_heal()));
         assert!(p.equip_skill(create_emergency_heal()));
         assert!(p.equip_skill(create_emergency_heal()));
         assert!(!p.equip_skill(create_emergency_heal()));

@@ -914,11 +914,12 @@ mod tests {
     #[test]
     fn sim_vampiric_touch_damages_and_heals() {
         let mut engine = GameEngine::new_with_enemy(Box::new(Slime::new("史莱姆", 5)));
-        engine.player.equip_skill(create_vampiric_touch());
+        // Replace the 2nd default skill with vampiric_touch
+        engine.player.skills[1] = create_vampiric_touch();
         engine.player.take_damage(1); // HP: 2
         let enemy_hp_before = engine.enemy.hp();
-        // Vampiric touch is skill 3 => index = cards(2) + skill(3) = 5
-        let choice = (engine.player.hand.len() + 3).to_string();
+        // Vampiric touch is skill 2 => index = cards + 2
+        let choice = (engine.player.hand.len() + 2).to_string();
         engine.try_execute_player_action(&choice, false);
         assert!(engine.enemy.hp() < enemy_hp_before, "吸血之触应造成伤害");
         assert_eq!(engine.player.hp(), 3, "吸血之触应恢复 HP");
@@ -927,9 +928,11 @@ mod tests {
     #[test]
     fn sim_war_cry_gives_shield() {
         let mut engine = GameEngine::new_with_enemy(Box::new(Slime::new("史莱姆", 3)));
-        engine.player.equip_skill(create_war_cry());
+        // Replace the 2nd default skill with war_cry
+        engine.player.skills[1] = create_war_cry();
         assert_eq!(engine.player.shield(), 0);
-        let choice = (engine.player.hand.len() + 3).to_string();
+        // War cry is skill 2 => index = cards + 2
+        let choice = (engine.player.hand.len() + 2).to_string();
         engine.try_execute_player_action(&choice, false);
         assert_eq!(engine.player.shield(), 2, "战吼应给予 2 点护盾");
     }

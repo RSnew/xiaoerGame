@@ -1,7 +1,7 @@
 import { Combatant } from '../mechanics/combat.js';
 
-export const MAX_CARDS = 6;
-export const MAX_SKILLS = 3;
+export const MAX_CARDS = 4;
+export const MAX_SKILLS = 2;
 export const DEFAULT_MAX_ENERGY = 4;
 
 /** The player-controlled character. */
