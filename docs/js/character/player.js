@@ -3,6 +3,7 @@ import { Combatant } from '../mechanics/combat.js';
 export const MAX_CARDS = 4;
 export const MAX_SKILLS = 2;
 export const DEFAULT_MAX_ENERGY = 4;
+export const DEFAULT_MAX_MANA = 100;
 
 /** The player-controlled character. */
 export class Player extends Combatant {
@@ -13,6 +14,8 @@ export class Player extends Combatant {
         this.passive = passive;
         this.maxEnergy = DEFAULT_MAX_ENERGY;
         this.energy = this.maxEnergy;
+        this.maxMana = DEFAULT_MAX_MANA;
+        this.mana = this.maxMana;
         this.relics = [];
     }
 
@@ -52,9 +55,21 @@ export class Player extends Combatant {
         return true;
     }
 
+    /** Spend mana. Returns false if not enough. */
+    spendMana(amount) {
+        if (this.mana < amount) return false;
+        this.mana -= amount;
+        return true;
+    }
+
     /** Refill energy to max at round start. */
     refillEnergy() {
         this.energy = this.maxEnergy;
+    }
+
+    /** Whether the player has any spell cards equipped. */
+    hasSpellCards() {
+        return this.hand.some(c => c.isSpell);
     }
 
     /** Add a relic to the player. */
@@ -82,6 +97,7 @@ export class Player extends Combatant {
         this.hp = this.maxHp;
         this.shield = 0;
         this.energy = this.maxEnergy;
+        this.mana = this.maxMana;
         for (const card of this.hand) {
             card.setInitialCooldown(0);
         }

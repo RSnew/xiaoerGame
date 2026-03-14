@@ -5,9 +5,15 @@ export const CardEffect = Object.freeze({
     HEAL: 'heal',
 });
 
+/** Card category — physical cards use energy, spell cards use mana. */
+export const CardType = Object.freeze({
+    PHYSICAL: 'physical',
+    SPELL: 'spell',
+});
+
 /** A playable card. */
 export class Card {
-    constructor(name, description, effectType, effectValue, icon = '⚔️', cooldownMs = 3000, energyCost = 1) {
+    constructor(name, description, effectType, effectValue, icon = '⚔️', cooldownMs = 3000, energyCost = 1, cardType = CardType.PHYSICAL, manaCost = 0) {
         this.name = name;
         this.description = description;
         this.effectType = effectType;
@@ -15,8 +21,13 @@ export class Card {
         this.icon = icon;
         this.cooldownMs = cooldownMs;
         this.energyCost = energyCost;
+        this.cardType = cardType;
+        this.manaCost = manaCost;
         this.remainingCooldownMs = 0;
     }
+
+    /** Whether this card is a spell (uses mana). */
+    get isSpell() { return this.cardType === CardType.SPELL; }
 
     isReady() {
         return this.remainingCooldownMs === 0;

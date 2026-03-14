@@ -13,12 +13,21 @@ pub enum CardEffect {
     Heal(i32),
 }
 
+/// Card category — physical cards use energy, spell cards use mana.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CardType {
+    Physical,
+    Spell,
+}
+
 /// A playable card in the game.
 #[derive(Debug, Clone)]
 pub struct Card {
     pub name: String,
     pub description: String,
     pub effect: CardEffect,
+    pub card_type: CardType,
+    pub mana_cost: i32,
     cooldown_ms: u64,
     remaining_cooldown_ms: u64,
 }
@@ -29,9 +38,27 @@ impl Card {
             name: name.to_string(),
             description: description.to_string(),
             effect,
+            card_type: CardType::Physical,
+            mana_cost: 0,
             cooldown_ms,
             remaining_cooldown_ms: 0,
         }
+    }
+
+    pub fn new_spell(name: &str, description: &str, effect: CardEffect, cooldown_ms: u64, mana_cost: i32) -> Self {
+        Self {
+            name: name.to_string(),
+            description: description.to_string(),
+            effect,
+            card_type: CardType::Spell,
+            mana_cost,
+            cooldown_ms,
+            remaining_cooldown_ms: 0,
+        }
+    }
+
+    pub fn is_spell(&self) -> bool {
+        self.card_type == CardType::Spell
     }
 
     pub fn is_ready(&self) -> bool {

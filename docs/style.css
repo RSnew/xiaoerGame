@@ -827,6 +827,56 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+/* ===== Mana Bar ===== */
+#mana-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+#mana-label {
+    font-size: 0.85rem;
+    color: #7090ff;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+#mana-track {
+    width: 120px;
+    height: 14px;
+    border-radius: 7px;
+    background: #1a1a30;
+    border: 2px solid rgba(100, 140, 255, 0.3);
+    overflow: hidden;
+}
+
+#mana-fill {
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #4060e0, #70a0ff);
+    box-shadow: 0 0 8px rgba(100, 140, 255, 0.5);
+    transition: width 0.3s ease;
+}
+
+#mana-num {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ===== Card Mana Cost ===== */
+.card-mana-cost {
+    font-size: 0.72rem;
+    color: #7090ff;
+    margin-top: 2px;
+    letter-spacing: 1px;
+}
+
 /* ===== Card Energy Cost ===== */
 .card-cost {
     font-size: 0.72rem;

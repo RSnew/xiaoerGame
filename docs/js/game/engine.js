@@ -37,6 +37,7 @@ export class GameEngine {
         this.bindRestart();
         this.initState();
         this.renderEnergy();
+        this.renderMana();
         this.renderRelics();
         this.renderCards();
         this.renderSkills();
@@ -203,6 +204,9 @@ export class GameEngine {
             energyBar:         document.getElementById('energy-bar'),
             energyNum:         document.getElementById('energy-num'),
             energyPips:        document.getElementById('energy-pips'),
+            manaBar:           document.getElementById('mana-bar'),
+            manaFill:          document.getElementById('mana-fill'),
+            manaNum:           document.getElementById('mana-num'),
             relicBar:          document.getElementById('relic-bar'),
             enemyPanel:        document.getElementById('enemy-panel'),
             enemyFrame:        document.getElementById('enemy-frame'),
@@ -241,6 +245,16 @@ export class GameEngine {
         }
     }
 
+    renderMana() {
+        if (!this.dom.manaBar) return;
+        const show = this.player.hasSpellCards();
+        this.dom.manaBar.classList.toggle('hidden', !show);
+        if (!show) return;
+        const pct = this.player.maxMana > 0 ? (this.player.mana / this.player.maxMana * 100) : 0;
+        if (this.dom.manaFill) this.dom.manaFill.style.width = `${pct}%`;
+        if (this.dom.manaNum) this.dom.manaNum.textContent = `${this.player.mana}/${this.player.maxMana}`;
+    }
+
     renderRelics() {
         if (!this.dom.relicBar) return;
         this.dom.relicBar.innerHTML = '';
@@ -274,12 +288,16 @@ export class GameEngine {
             }
 
             const costPips = '⚡'.repeat(card.energyCost);
+            const manaCostHtml = card.isSpell
+                ? `<div class="card-mana-cost">🔮 ${card.manaCost}</div>`
+                : '';
 
             el.innerHTML = `
                 <div class="card-icon">${card.icon}</div>
                 <div class="card-name">${card.name}</div>
                 <div class="card-desc">${card.description}</div>
                 <div class="card-cost">${costPips || '免费'}</div>
+                ${manaCostHtml}
                 <div class="card-value">${valueLabel}</div>
             `;
             el.addEventListener('click', () => this.onCardClick(i));
@@ -308,6 +326,7 @@ export class GameEngine {
     canPlayerUseCard(card) {
         if (this.gameOver || this.busy) return false;
         if (card && this.player.energy < card.energyCost) return false;
+        if (card && card.isSpell && this.player.mana < card.manaCost) return false;
         return true;
     }
 
@@ -328,6 +347,7 @@ export class GameEngine {
         this.updateHpBars();
         this.updateShields();
         this.renderEnergy();
+        this.renderMana();
         this.updateActionHint();
     }
 
@@ -585,15 +605,20 @@ export class GameEngine {
 
         this._ensureAudio();
         this.player.spendEnergy(card.energyCost);
+        if (card.isSpell) this.player.spendMana(card.manaCost);
         this.playerDidAnyActionThisRound = true;
         this.busy = true;
         card.triggerCooldown();
         this.renderCards();
         this.renderSkills();
         this.renderEnergy();
+        this.renderMana();
         this.updateActionHint();
 
-        this.log(`▶ 你使用了「${card.name}」！（⚡-${card.energyCost}）`, 'player');
+        const costText = card.isSpell
+            ? `⚡-${card.energyCost} 🔮-${card.manaCost}`
+            : `⚡-${card.energyCost}`;
+        this.log(`▶ 你使用了「${card.name}」！（${costText}）`, 'player');
 
         if (card.effectType === CardEffect.DAMAGE) {
             const dmg = this._calcDamage(card.effectValue);
@@ -1127,6 +1152,7 @@ export class GameEngine {
         this.renderCards();
         this.renderSkills();
         this.renderEnergy();
+        this.renderMana();
         this.renderRelics();
         this.syncUI();
         this.logStageStart();
