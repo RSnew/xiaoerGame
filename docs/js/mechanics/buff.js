@@ -68,6 +68,18 @@ registerBuff({
     healBonus: (stacks) => stacks * 0.05,
 });
 
+/* ─── 脆弱 (Fragile) ─── */
+registerBuff({
+    id: 'fragile',
+    name: '脆弱',
+    icon: '🔻',
+    type: 'debuff',
+    maxStacks: 20,
+    description: (stacks) => `受到伤害 +${stacks * 5}%`,
+    /** Returns the incoming damage multiplier bonus (e.g. 2 stacks → 0.10). */
+    damageIncrease: (stacks) => stacks * 0.05,
+});
+
 /* ═══════════════════════════════════════════
  *  Buff Manager — manages buffs on a combatant
  * ═══════════════════════════════════════════ */

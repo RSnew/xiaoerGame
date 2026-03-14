@@ -5,24 +5,29 @@
 pub enum BuffId {
     /// 滋润 — each stack +5% heal effectiveness.
     Nourish,
+    /// 脆弱 — each stack +5% incoming damage.
+    Fragile,
 }
 
 impl BuffId {
     pub fn name(&self) -> &'static str {
         match self {
             BuffId::Nourish => "滋润",
+            BuffId::Fragile => "脆弱",
         }
     }
 
     pub fn icon(&self) -> &'static str {
         match self {
             BuffId::Nourish => "💧",
+            BuffId::Fragile => "🔻",
         }
     }
 
     pub fn max_stacks(&self) -> u32 {
         match self {
             BuffId::Nourish => 20,
+            BuffId::Fragile => 20,
         }
     }
 }
@@ -113,6 +118,12 @@ impl BuffManager {
         let stacks = self.stacks(BuffId::Nourish);
         1.0 + stacks as f64 * 0.05
     }
+
+    /// Calculate incoming damage multiplier from fragile debuff (1.0 + stacks * 0.05).
+    pub fn fragile_damage_multiplier(&self) -> f64 {
+        let stacks = self.stacks(BuffId::Fragile);
+        1.0 + stacks as f64 * 0.05
+    }
 }
 
 #[cfg(test)]
@@ -137,6 +148,26 @@ mod tests {
         let mut mgr = BuffManager::new();
         mgr.apply(BuffId::Nourish, 100, 0);
         assert_eq!(mgr.stacks(BuffId::Nourish), 20);
+    }
+
+    #[test]
+    fn fragile_damage_bonus() {
+        let mut mgr = BuffManager::new();
+        assert!((mgr.fragile_damage_multiplier() - 1.0).abs() < f64::EPSILON);
+
+        mgr.apply(BuffId::Fragile, 3, 0);
+        assert!((mgr.fragile_damage_multiplier() - 1.15).abs() < f64::EPSILON);
+
+        mgr.apply(BuffId::Fragile, 2, 0);
+        assert_eq!(mgr.stacks(BuffId::Fragile), 5);
+        assert!((mgr.fragile_damage_multiplier() - 1.25).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn fragile_max_stacks_capped() {
+        let mut mgr = BuffManager::new();
+        mgr.apply(BuffId::Fragile, 100, 0);
+        assert_eq!(mgr.stacks(BuffId::Fragile), 20);
     }
 
     #[test]

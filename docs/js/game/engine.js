@@ -1215,6 +1215,12 @@ export class GameEngine {
             return;
         }
 
+        // Fragile debuff: +5% damage taken per stack
+        const fragileBuff = target.buffManager.get('fragile');
+        if (fragileBuff) {
+            amount = Math.floor(amount * (1 + BUFF_DEFS.fragile.damageIncrease(fragileBuff.stacks)));
+        }
+
         const shieldBefore = target.shield;
         target.takeDamage(amount);
         const absorbed = shieldBefore - target.shield;
