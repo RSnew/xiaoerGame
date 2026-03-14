@@ -13,6 +13,7 @@ import { createFastCycle } from '../skill/fast_cycle.js';
 import { getEquippedCards, getEquippedSkills } from '../hub/state.js';
 import { getCardById, getSkillById, ALL_CARDS, ALL_SKILLS } from '../hub/registry.js';
 import { ALL_RELICS, RELIC_TIERS, pickRelicsForReward } from './relics.js';
+import { BUFF_DEFS } from '../mechanics/buff.js';
 
 const BASE_ROUND_DURATION_MS = 5000;
 const ROUND_TICK_MS = 200;
@@ -201,6 +202,7 @@ export class GameEngine {
             playerHpNum:       document.getElementById('player-hp-num'),
             playerShieldBadge: document.getElementById('player-shield-badge'),
             playerShieldVal:   document.getElementById('player-shield-val'),
+            playerBuffBar:     document.getElementById('player-buff-bar'),
             energyBar:         document.getElementById('energy-bar'),
             energyNum:         document.getElementById('energy-num'),
             energyPips:        document.getElementById('energy-pips'),
@@ -214,6 +216,7 @@ export class GameEngine {
             enemyHpNum:        document.getElementById('enemy-hp-num'),
             enemyShieldBadge:  document.getElementById('enemy-shield-badge'),
             enemyShieldVal:    document.getElementById('enemy-shield-val'),
+            enemyBuffBar:      document.getElementById('enemy-buff-bar'),
             handCards:         document.getElementById('hand-cards'),
             handHint:          document.getElementById('hand-hint'),
             skillCards:        document.getElementById('skill-cards'),
@@ -255,6 +258,26 @@ export class GameEngine {
         if (this.dom.manaNum) this.dom.manaNum.textContent = `${this.player.mana}/${this.player.maxMana}`;
     }
 
+    renderBuffs() {
+        this._renderBuffBar(this.player, this.dom.playerBuffBar);
+        this._renderBuffBar(this.enemy, this.dom.enemyBuffBar);
+    }
+
+    _renderBuffBar(combatant, container) {
+        if (!container) return;
+        const buffs = combatant.buffManager?.buffs || [];
+        container.innerHTML = '';
+        for (const b of buffs) {
+            const el = document.createElement('div');
+            el.className = 'buff-icon' + (b.type === 'debuff' ? ' debuff' : '');
+            el.title = `${b.name}（${b.stacks}层）: ${b.describe()}` +
+                       (b.duration > 0 ? `\n剩余 ${b.duration} 回合` : '');
+            el.innerHTML = `${b.icon}` +
+                           (b.stacks > 1 ? `<span class="buff-stacks">${b.stacks}</span>` : '');
+            container.appendChild(el);
+        }
+    }
+
     renderRelics() {
         if (!this.dom.relicBar) return;
         this.dom.relicBar.innerHTML = '';
@@ -282,7 +305,7 @@ export class GameEngine {
             } else if (card.effectType === CardEffect.SHIELD) {
                 valueLabel = `护盾 ${card.effectValue + this.player.relicSum('bonusShield')}`;
             } else if (card.effectType === CardEffect.HEAL) {
-                valueLabel = `治疗 ${card.effectValue + this.player.relicSum('bonusHeal')}`;
+                valueLabel = `治疗 ${this._calcHeal(card.effectValue)}`;
             } else {
                 valueLabel = '可用';
             }
@@ -348,6 +371,7 @@ export class GameEngine {
         this.updateShields();
         this.renderEnergy();
         this.renderMana();
+        this.renderBuffs();
         this.updateActionHint();
     }
 
@@ -553,6 +577,16 @@ export class GameEngine {
             if (r.onRoundEnd) r.onRoundEnd(ctx);
         }
 
+        // Tick buff durations
+        const playerExpired = this.player.buffManager.tick();
+        for (const id of playerExpired) {
+            this.log(`  💨 「${BUFF_DEFS[id]?.name || id}」效果消失了`, 'system');
+        }
+        const enemyExpired = this.enemy.buffManager.tick();
+        for (const id of enemyExpired) {
+            this.log(`  💨 ${this.enemy.name} 的「${BUFF_DEFS[id]?.name || id}」效果消失了`, 'system');
+        }
+
         // Clear shields unless player has persistent shield relic
         const hasPersistentShield = this.player.relics.some(r => r.persistentShield);
         if (!hasPersistentShield) {
@@ -598,6 +632,17 @@ export class GameEngine {
         return amount;
     }
 
+    /** Calculate heal amount with relic + buff bonuses. */
+    _calcHeal(baseAmount) {
+        let amount = baseAmount + this.player.relicSum('bonusHeal');
+        // Nourish buff: +5% per stack
+        const nourishBuff = this.player.buffManager.get('nourish');
+        if (nourishBuff) {
+            amount = Math.floor(amount * (1 + BUFF_DEFS.nourish.healBonus(nourishBuff.stacks)));
+        }
+        return amount;
+    }
+
     async onCardClick(index) {
         const card = this.player.hand[index];
         if (!card || !card.isReady()) return;
@@ -636,7 +681,7 @@ export class GameEngine {
                 if (r.onPlayerDefend) r.onPlayerDefend({ player: this.player, engine: this });
             }
         } else if (card.effectType === CardEffect.HEAL) {
-            const healAmt = card.effectValue + this.player.relicSum('bonusHeal');
+            const healAmt = this._calcHeal(card.effectValue);
             const healed = this.player.heal(healAmt);
             await this.animateHeal('player');
             if (healed > 0) {
@@ -675,7 +720,7 @@ export class GameEngine {
         this.log(`▶ 你使用了技能「${skill.name}」！`, 'player');
 
         if (skill.effectType === SkillEffect.HEAL) {
-            const healAmt = skill.effectValue + this.player.relicSum('bonusHeal');
+            const healAmt = this._calcHeal(skill.effectValue);
             const healed = this.player.heal(healAmt);
             await this.animateHeal('player');
             if (healed > 0) {
@@ -695,7 +740,7 @@ export class GameEngine {
             const { damage, heal } = skill.effectValue;
             const dmg = this._calcDamage(damage);
             await this.performAttack('player', this.enemy, 'enemy', dmg);
-            const healAmt = heal + this.player.relicSum('bonusHeal');
+            const healAmt = this._calcHeal(heal);
             const healed = this.player.heal(healAmt);
             if (healed > 0) {
                 await this.animateHeal('player');

@@ -92,12 +92,13 @@ export class Player extends Combatant {
         return sum;
     }
 
-    /** Reset HP and cooldowns for a new battle. */
+    /** Reset HP, mana, buffs and cooldowns for a new battle. */
     resetForBattle() {
         this.hp = this.maxHp;
         this.shield = 0;
         this.energy = this.maxEnergy;
         this.mana = this.maxMana;
+        this.buffManager.clear();
         for (const card of this.hand) {
             card.setInitialCooldown(0);
         }
