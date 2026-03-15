@@ -92,7 +92,10 @@ impl BuffManager {
     }
 
     pub fn stacks(&self, id: BuffId) -> u32 {
-        self.buffs.iter().find(|b| b.id == id).map_or(0, |b| b.stacks)
+        self.buffs
+            .iter()
+            .find(|b| b.id == id)
+            .map_or(0, |b| b.stacks)
     }
 
     /// Tick all buffs and remove expired ones. Returns expired ids.
