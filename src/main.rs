@@ -1,4 +1,6 @@
+#[allow(dead_code)]
 mod card;
+#[allow(dead_code)]
 mod character;
 mod enemy;
 mod game;

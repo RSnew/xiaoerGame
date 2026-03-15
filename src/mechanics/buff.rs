@@ -1,4 +1,4 @@
-/// Buff / Debuff system.
+//! Buff / Debuff system.
 
 /// Known buff identifiers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
