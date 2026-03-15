@@ -45,7 +45,13 @@ impl Card {
         }
     }
 
-    pub fn new_spell(name: &str, description: &str, effect: CardEffect, cooldown_ms: u64, mana_cost: i32) -> Self {
+    pub fn new_spell(
+        name: &str,
+        description: &str,
+        effect: CardEffect,
+        cooldown_ms: u64,
+        mana_cost: i32,
+    ) -> Self {
         Self {
             name: name.to_string(),
             description: description.to_string(),
