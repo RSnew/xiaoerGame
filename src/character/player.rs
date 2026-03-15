@@ -2,7 +2,8 @@ use crate::card::Card;
 use crate::mechanics::combat::Combatant;
 use crate::skill::Skill;
 
-pub const MAX_SKILLS: usize = 3;
+pub const MAX_SKILLS: usize = 2;
+pub const DEFAULT_MAX_MANA: i32 = 100;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PassiveSkill {
@@ -32,6 +33,8 @@ pub struct Player {
     speed: i32,
     shield: i32,
     gold: i32,
+    mana: i32,
+    max_mana: i32,
     passive: Option<PassiveSkill>,
     pub hand: Vec<Card>,
     pub skills: Vec<Skill>,
@@ -46,6 +49,8 @@ impl Player {
             speed: 3,
             shield: 0,
             gold: 0,
+            mana: DEFAULT_MAX_MANA,
+            max_mana: DEFAULT_MAX_MANA,
             passive: None,
             hand: Vec::new(),
             skills: Vec::new(),
@@ -78,10 +83,34 @@ impl Player {
         }
     }
 
-    /// Reset HP to max for a new battle.
+    pub fn mana(&self) -> i32 {
+        self.mana
+    }
+
+    pub fn max_mana(&self) -> i32 {
+        self.max_mana
+    }
+
+    /// Spend mana. Returns false if not enough mana.
+    pub fn spend_mana(&mut self, amount: i32) -> bool {
+        if self.mana >= amount {
+            self.mana -= amount;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Whether the player has any spell cards equipped.
+    pub fn has_spell_cards(&self) -> bool {
+        self.hand.iter().any(|c| c.is_spell())
+    }
+
+    /// Reset HP, mana and cooldowns for a new battle.
     pub fn reset_for_battle(&mut self) {
         self.hp = self.max_hp;
         self.shield = 0;
+        self.mana = self.max_mana;
         for card in &mut self.hand {
             card.set_initial_cooldown_ms(0);
         }
@@ -199,7 +228,6 @@ mod tests {
     #[test]
     fn equip_up_to_max_skills() {
         let mut p = Player::new("勇者", 3);
-        assert!(p.equip_skill(create_emergency_heal()));
         assert!(p.equip_skill(create_emergency_heal()));
         assert!(p.equip_skill(create_emergency_heal()));
         assert!(!p.equip_skill(create_emergency_heal()));

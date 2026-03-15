@@ -1,3 +1,5 @@
+import { BuffManager } from './buff.js';
+
 /** Base class for all combatants (players, enemies, etc.). */
 export class Combatant {
     constructor(name, maxHp, speed = 3) {
@@ -8,6 +10,8 @@ export class Combatant {
         this.shield = 0;
         /** Probability [0, 1] of dodging an incoming hit. Default 0 (no dodge). */
         this.dodgeChance = 0;
+        /** Buff / debuff manager. */
+        this.buffManager = new BuffManager();
     }
 
     /** Deals damage, absorbing through shield first. */

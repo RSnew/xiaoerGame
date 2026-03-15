@@ -48,6 +48,7 @@
                 <div class="hp-fill hp-high" id="player-hp-bar" style="width:100%"></div>
             </div>
             <div class="hp-num" id="player-hp-num">3 / 3</div>
+            <div class="buff-bar" id="player-buff-bar"></div>
         </div>
 
         <!-- Center -->
@@ -66,6 +67,7 @@
                 <div class="hp-fill hp-high" id="enemy-hp-bar" style="width:100%"></div>
             </div>
             <div class="hp-num" id="enemy-hp-num">3 / 3</div>
+            <div class="buff-bar" id="enemy-buff-bar"></div>
         </div>
     </section>
 
@@ -73,6 +75,23 @@
     <section id="log-section">
         <div id="log-title">📜 战斗日志</div>
         <div id="log-body"></div>
+    </section>
+
+    <!-- Energy & Relics -->
+    <section id="player-status">
+        <div id="energy-bar">
+            <span id="energy-label">⚡ 能量</span>
+            <div id="energy-pips"></div>
+            <span id="energy-num">4/4</span>
+        </div>
+        <div id="mana-bar" class="hidden">
+            <span id="mana-label">🔮 法力</span>
+            <div id="mana-track">
+                <div id="mana-fill" style="width:100%"></div>
+            </div>
+            <span id="mana-num">100/100</span>
+        </div>
+        <div id="relic-bar"></div>
     </section>
 
     <!-- Hand -->

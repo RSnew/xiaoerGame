@@ -387,6 +387,54 @@ body {
 
 .shield-badge.hidden { display: none; }
 
+/* Buff Bar */
+.buff-bar {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 4px;
+    min-height: 0;
+}
+
+.buff-icon {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    border-radius: 5px;
+    border: 1.5px solid rgba(100, 200, 100, 0.5);
+    background: rgba(100, 200, 100, 0.1);
+    cursor: help;
+    transition: transform 0.15s;
+}
+
+.buff-icon.debuff {
+    border-color: rgba(255, 80, 80, 0.5);
+    background: rgba(255, 80, 80, 0.1);
+}
+
+.buff-stacks {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: 0.55rem;
+    font-weight: 700;
+    background: var(--bg-card);
+    color: var(--text);
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    border: 1px solid var(--border);
+}
+
 /* Center VS */
 #center {
     display: flex;
@@ -776,6 +824,202 @@ body {
 #btn-restart:active {
     transform: translateY(0);
 }
+
+/* ===== Energy Bar ===== */
+#player-status {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+#energy-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+#energy-label {
+    font-size: 0.85rem;
+    color: var(--yellow);
+    font-weight: 600;
+}
+
+#energy-pips {
+    display: flex;
+    gap: 4px;
+}
+
+.energy-pip {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid rgba(255, 208, 64, 0.3);
+    background: #1a1a30;
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+.energy-pip-full {
+    background: linear-gradient(135deg, #ffd040, #e0a020);
+    border-color: var(--yellow);
+    box-shadow: 0 0 8px rgba(255, 208, 64, 0.4);
+}
+
+#energy-num {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Mana Bar ===== */
+#mana-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+#mana-label {
+    font-size: 0.85rem;
+    color: #7090ff;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+#mana-track {
+    width: 120px;
+    height: 14px;
+    border-radius: 7px;
+    background: #1a1a30;
+    border: 2px solid rgba(100, 140, 255, 0.3);
+    overflow: hidden;
+}
+
+#mana-fill {
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #4060e0, #70a0ff);
+    box-shadow: 0 0 8px rgba(100, 140, 255, 0.5);
+    transition: width 0.3s ease;
+}
+
+#mana-num {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ===== Card Mana Cost ===== */
+.card-mana-cost {
+    font-size: 0.72rem;
+    color: #7090ff;
+    margin-top: 2px;
+    letter-spacing: 1px;
+}
+
+/* ===== Card Energy Cost ===== */
+.card-cost {
+    font-size: 0.72rem;
+    color: var(--yellow);
+    margin-top: 4px;
+    letter-spacing: 1px;
+}
+
+/* ===== Relic Bar ===== */
+#relic-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.relic-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    background: var(--bg-card);
+    cursor: help;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.relic-icon:hover {
+    transform: scale(1.2);
+    z-index: 10;
+}
+
+.relic-common { border-color: #a0a0b0; }
+.relic-uncommon { border-color: #50a0ff; box-shadow: 0 0 6px rgba(80,160,255,0.2); }
+.relic-rare { border-color: #c060ff; box-shadow: 0 0 8px rgba(192,96,255,0.25); }
+.relic-legendary { border-color: #ffaa00; box-shadow: 0 0 10px rgba(255,170,0,0.3); animation: relicGlow 2s ease infinite; }
+
+@keyframes relicGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(255,170,0,0.3); }
+    50% { box-shadow: 0 0 18px rgba(255,170,0,0.6); }
+}
+
+/* ===== Relic Choice Screen ===== */
+.relic-choice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 12px 0;
+}
+
+.relic-choice-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
+    cursor: pointer;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: #2a2a3a;
+    color: var(--text);
+    font-size: 0.92rem;
+    text-align: left;
+    transition: all 0.2s;
+}
+
+.relic-choice-btn:hover {
+    border-color: var(--gold);
+    background: #32325a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(240,200,80,0.15);
+}
+
+.relic-choice-common:hover { border-color: #a0a0b0; }
+.relic-choice-uncommon { border-color: rgba(80,160,255,0.4); }
+.relic-choice-uncommon:hover { border-color: #50a0ff; box-shadow: 0 4px 16px rgba(80,160,255,0.2); }
+.relic-choice-rare { border-color: rgba(192,96,255,0.4); }
+.relic-choice-rare:hover { border-color: #c060ff; box-shadow: 0 4px 16px rgba(192,96,255,0.25); }
+.relic-choice-legendary { border-color: rgba(255,170,0,0.4); }
+.relic-choice-legendary:hover { border-color: #ffaa00; box-shadow: 0 4px 16px rgba(255,170,0,0.3); }
+
+.relic-choice-skip {
+    justify-content: center;
+    color: var(--text-dim);
+    border-color: rgba(128,128,160,0.3);
+    font-size: 0.85rem;
+}
+
+.relic-choice-icon { font-size: 1.6rem; }
+.relic-choice-name { font-weight: 700; min-width: 80px; }
+.relic-choice-tier { font-size: 0.78rem; font-weight: 600; }
+.relic-choice-desc { font-size: 0.82rem; color: var(--text-dim); flex: 1; }
 
 /* ===== Responsive ===== */
 @media (max-width: 560px) {
