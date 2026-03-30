@@ -14,6 +14,7 @@ pub enum CardEffect {
 }
 
 /// Card category — physical cards use energy, spell cards use mana.
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CardType {
     Physical,
@@ -21,6 +22,7 @@ pub enum CardType {
 }
 
 /// A playable card in the game.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Card {
     pub name: String,
@@ -32,6 +34,7 @@ pub struct Card {
     remaining_cooldown_ms: u64,
 }
 
+#[allow(dead_code)]
 impl Card {
     pub fn new(name: &str, description: &str, effect: CardEffect, cooldown_ms: u64) -> Self {
         Self {

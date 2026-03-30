@@ -83,15 +83,18 @@ impl Player {
         }
     }
 
+    #[allow(dead_code)]
     pub fn mana(&self) -> i32 {
         self.mana
     }
 
+    #[allow(dead_code)]
     pub fn max_mana(&self) -> i32 {
         self.max_mana
     }
 
     /// Spend mana. Returns false if not enough mana.
+    #[allow(dead_code)]
     pub fn spend_mana(&mut self, amount: i32) -> bool {
         if self.mana >= amount {
             self.mana -= amount;
@@ -102,6 +105,7 @@ impl Player {
     }
 
     /// Whether the player has any spell cards equipped.
+    #[allow(dead_code)]
     pub fn has_spell_cards(&self) -> bool {
         self.hand.iter().any(|c| c.is_spell())
     }
